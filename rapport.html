@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SODAMA - Rapport Mensuel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #ffffff;
+            color: #0a3d62;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0a3d62;
+            padding: 10px 20px;
+            color: white;
+        }
+        .navbar .logo { font-size: 1.5rem; font-weight: bold; }
+        .navbar ul { display: flex; list-style: none; gap: 15px; }
+        .navbar ul li a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+        }
+        .navbar ul li a:hover { background: white; color: #0a3d62; }
+
+        .menu-toggle { display: none; flex-direction: column; cursor: pointer; }
+        .menu-toggle span { height: 3px; width: 25px; background: white; margin: 4px 0; }
+
+        @media(max-width: 768px){
+            .menu-toggle{ display: flex; }
+            .navbar ul { display: none; flex-direction: column; background: #0a3d62; width: 200px; position: absolute; top: 60px; right: 0; padding: 10px; }
+            .navbar ul.active{ display: flex; }
+        }
+
+        /* ACCORDION */
+        .accordion-btn {
+            width: 95%;
+            margin: 15px auto;
+            background: #0a3d62;
+            color: white;
+            padding: 12px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+        }
+        .accordion-content {
+            width: 95%;
+            display: none;
+            margin: 10px auto;
+            border: 2px solid #0a3d62;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        th, td { border: 1px solid #0a3d62; padding: 10px; text-align: center; }
+        .total-row { background: #0a3d62; color: white; font-weight: bold; }
+
+        .flex-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .block { width: 50%; }
+        @media(max-width: 900px){ .flex-container { flex-direction: column; } .block { width: 100%; } }
+
+        .month-total {
+            margin-top: 10px;
+            font-size: 1rem;
+            padding: 8px;
+            background: #dfeaff;
+            border-left: 5px solid #0a3d62;
+        }
+
+        .total-global {
+            background: #0a3d62;
+            color: white;
+            padding: 15px;
+            margin: 30px auto;
+            border-radius: 10px;
+            width: 90%;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+    <div class="logo">SODAMA</div>
+    <div class="menu-toggle" id="mobile-menu">
+        <span></span><span></span><span></span>
+    </div>
+    <ul id="nav-links">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="ciment.html">Ciment</a></li>
+        <li><a href="transport.html">Transport</a></li>
+        <li><a href="rapport.html">Rapport</a></li>
+        <li><a href="versement.html">Versement</a></li>
+    </ul>
+</nav>
+
+<h1 style="text-align:center;">Rapport Structuré Par Mois</h1>
+
+<div id="reportContainer"></div>
+
+<div class="total-global">
+    TOTAL GLOBAL BÉNÉFICE : <span id="global_benef">0</span> FCFA
+</div>
+
+<script>
+document.getElementById("mobile-menu").onclick = () => {
+    document.getElementById("nav-links").classList.toggle("active");
+};
+
+// Charger données depuis localStorage
+let cimentData = JSON.parse(localStorage.getItem("cimentData")) || [];
+let transportData = JSON.parse(localStorage.getItem("transportData")) || [];
+
+// Fonctions utilitaires
+function getMonthName(m){
+    const noms = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+    return noms[m];
+}
+
+function groupByMonth(data){
+    let result = {};
+    data.forEach(item => {
+        let d = new Date(item.date);
+        let key = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
+        if(!result[key]) result[key] = [];
+        result[key].push(item);
+    });
+    return result;
+}
+
+let cimentByMonth = groupByMonth(cimentData);
+let transportByMonth = groupByMonth(transportData);
+
+// Tous les mois combinés
+let allMonthsSet = new Set([...Object.keys(cimentByMonth), ...Object.keys(transportByMonth)]);
+let allMonths = Array.from(allMonthsSet).sort();
+
+let globalBenef = 0;
+let container = document.getElementById("reportContainer");
+
+// Générer le rapport par mois
+allMonths.forEach(month => {
+    let cimentRows = cimentByMonth[month] || [];
+    let transportRows = transportByMonth[month] || [];
+
+    let btn = document.createElement("button");
+    btn.className = "accordion-btn";
+    btn.textContent = "Rapport du mois " + month;
+
+    let content = document.createElement("div");
+    content.className = "accordion-content";
+
+    // Totaux ciment
+    let tc = { tonnage:0, depense:0, benefice:0 };
+    cimentRows.forEach(x => {
+        tc.tonnage += Number(x.tonnage);
+        tc.depense += Number(x.depense);
+        tc.benefice += Number(x.benefice);
+        globalBenef += Number(x.benefice);
+    });
+
+    // Totaux transport
+    let tt = { tonnage:0, depense:0, benefice:0 };
+    transportRows.forEach(x => {
+        tt.tonnage += Number(x.tonnage);
+        tt.depense += Number(x.depense);
+        tt.benefice += Number(x.benefice);
+        globalBenef += Number(x.benefice);
+    });
+
+    content.innerHTML = `
+    <div class="flex-container">
+        <!-- TRANSPORT -->
+        <div class="block">
+            <h2>TRANSPORT</h2>
+            <table>
+                <tr><th>Date</th><th>Tonnage</th><th>Dépense</th><th>Bénéfice</th></tr>
+                ${transportRows.map(x => `<tr>
+                    <td>${x.date}</td>
+                    <td>${x.tonnage}</td>
+                    <td>${x.depense}</td>
+                    <td>${x.benefice}</td>
+                </tr>`).join("")}
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td>${tt.tonnage}</td>
+                    <td>${tt.depense}</td>
+                    <td>${tt.benefice}</td>
+                </tr>
+            </table>
+            <div class="month-total">
+                <strong>TOTAL TRANSPORT DU MOIS :</strong><br>
+                Tonnage : <strong>${tt.tonnage}</strong><br>
+                Dépenses : <strong>${tt.depense}</strong> FCFA<br>
+                Bénéfice : <strong>${tt.benefice}</strong> FCFA
+            </div>
+        </div>
+
+        <!-- CIMENT -->
+        <div class="block">
+            <h2>CIMENT</h2>
+            <table>
+                <tr><th>Date</th><th>Tonnage</th><th>Dépense</th><th>Bénéfice</th></tr>
+                ${cimentRows.map(x => `<tr>
+                    <td>${x.date}</td>
+                    <td>${x.tonnage}</td>
+                    <td>${x.depense}</td>
+                    <td>${x.benefice}</td>
+                </tr>`).join("")}
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td>${tc.tonnage}</td>
+                    <td>${tc.depense}</td>
+                    <td>${tc.benefice}</td>
+                </tr>
+            </table>
+            <div class="month-total">
+                <strong>TOTAL CIMENT DU MOIS :</strong><br>
+                Tonnage : <strong>${tc.tonnage}</strong><br>
+                Dépenses : <strong>${tc.depense}</strong> FCFA<br>
+                Bénéfice : <strong>${tc.benefice}</strong> FCFA
+            </div>
+        </div>
+    </div>
+    `;
+
+    btn.onclick = () => { content.style.display = content.style.display === "block" ? "none" : "block"; };
+    container.appendChild(btn);
+    container.appendChild(content);
+});
+
+document.getElementById("global_benef").textContent = globalBenef;
+</script>
+
+</body>
+</html>
