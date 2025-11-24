@@ -1,235 +1,261 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Versements - SODAMA</title>
+<title>SODAMA - Versements</title>
 
 <style>
-body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
-.navbar { display: flex; justify-content: space-between; align-items: center; background-color: #0a3d62; padding: 10px 20px; color: white; }
-.navbar .logo { font-size: 1.5rem; font-weight: bold; }
-.navbar ul { display: flex; list-style: none; gap: 15px; }
-.navbar ul li a { color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; transition: 0.3s; font-weight: bold; }
-.navbar ul li a:hover { background: white; color: #0a3d62; }
+body { font-family: Arial; margin:0; background:#f4f4f4; color:#0a3d62;}
+.navbar { display:flex; justify-content:space-between; align-items:center; background:#0a3d62; padding:10px 20px; color:white;}
+.navbar .logo { font-size:1.5rem; font-weight:bold;}
+.navbar ul { display:flex; list-style:none; gap:15px; }
+.navbar ul li a { color:white; text-decoration:none; padding:8px 15px; border-radius:5px; font-weight:bold;}
+.navbar ul li a:hover { background:white; color:#0a3d62;}
 
-.container { width: 95%; max-width: 900px; margin: 20px auto; background: white; padding: 20px; border-radius: 10px; }
-h2 { text-align: center; color: #0a3d62; }
+.menu-toggle { display:none; flex-direction:column; cursor:pointer;}
+.menu-toggle span { width:25px; height:3px; background:white; margin:3px 0;}
 
-input, select, textarea, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #aaa; }
-button { background: #0a3d62; color: white; border: none; cursor: pointer; font-weight: bold; }
-button:hover { background: #074267; }
+@media(max-width:768px){
+  .menu-toggle{display:flex;}
+  .navbar ul{display:none; flex-direction:column; background:#0a3d62; width:200px; position:absolute; top:60px; right:0; padding:10px;}
+  .navbar ul.active{display:flex;}
+}
 
-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-th, td { border: 1px solid #aaa; padding: 10px; text-align: center; }
-th { background: #0a3d62; color: white; }
-.action-btn { padding: 6px 10px; color: white; border: none; cursor: pointer; border-radius: 4px; }
-.edit { background: orange; }
-.delete { background: red; }
+.container { width:95%; max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:10px; }
 
-.month-total { margin-top: 5px; font-size: 1rem; padding: 8px; background: #dfeaff; border-left: 5px solid #0a3d62; font-weight: bold; display: flex; justify-content: space-between; }
+h2 { text-align:center; margin-bottom:20px; }
 
-.accordion-btn { width: 95%; margin: 15px auto; background: #0a3d62; color: white; padding: 12px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; text-align: left; }
-.accordion-content { width: 95%; display: none; margin: 10px auto; border: 2px solid #0a3d62; padding: 15px; border-radius: 8px; background: #fff; }
+input, select, textarea, button {
+  width:100%; padding:10px; margin:8px 0; border-radius:5px; border:1px solid #aaa;
+}
 
-#downloadPdfBtn { padding:10px 20px; font-size:1rem; cursor:pointer; background:#0a3d62; color:white; border:none; border-radius:5px; margin: 20px auto; display:block; }
+button { background:#0a3d62; color:white; border:none; cursor:pointer; font-weight:bold; }
+button:hover { background:#074267; }
 
-.section { margin-top: 30px; }
+table { width:100%; border-collapse:collapse; margin-top:15px; }
+th, td { border:1px solid #aaa; padding:10px; text-align:center; }
+th { background:#0a3d62; color:white; }
+
+.action-btn { padding:6px 10px; color:white; border:none; cursor:pointer; border-radius:4px; }
+.edit { background:orange; }
+.delete { background:red; }
+
+.accordion-btn {
+  width:100%; background:#0a3d62; color:white; padding:12px;
+  font-size:1.1rem; border:none; border-radius:8px; cursor:pointer;
+  margin-top:15px; text-align:left;
+}
+
+.accordion-content {
+  display:none; margin-top:10px; border:2px solid #0a3d62; padding:15px; border-radius:8px;
+}
+
+.caisse-box {
+  margin-top:8px; padding:10px; background:#dfeaff; border-left:5px solid #0a3d62;
+  font-weight:bold; display:flex; justify-content:space-between;
+}
 </style>
 </head>
 
 <body>
 
 <nav class="navbar">
-    <div class="logo">SODAMA</div>
-    <ul>
-        <li><a href="index.html">Accueil</a></li>
-        <li><a href="ciment.html">Ciment</a></li>
-        <li><a href="transport.html">Transport</a></li>
-        <li><a href="rapport.html">Rapport</a></li>
-        <li><a href="versement.html">Versement</a></li>
-    </ul>
+  <div class="logo">SODAMA</div>
+  <div class="menu-toggle" id="mobile-menu"><span></span><span></span><span></span></div>
+  <ul id="nav-links">
+    <li><a href="index.html">Accueil</a></li>
+    <li><a href="ciment.html">Ciment</a></li>
+    <li><a href="transport.html">Transport</a></li>
+    <li><a href="rapport.html">Rapport</a></li>
+    <li><a href="versement.html">Versement</a></li>
+  </ul>
 </nav>
 
 <div class="container">
-    <h2>Gestion des Versements</h2>
+<h2>Gestion des Versements</h2>
 
-    <label>Date :</label>
-    <input type="date" id="date">
+<label>Date :</label>
+<input type="date" id="date">
 
-    <label>Type :</label>
-    <select id="type">
-        <option value="ciment">Ciment</option>
-        <option value="transport">Transport</option>
-    </select>
+<label>Type :</label>
+<select id="type">
+  <option value="ciment">Ciment</option>
+  <option value="transport">Transport</option>
+</select>
 
-    <label>Montant Versé :</label>
-    <input type="number" id="montant" placeholder="Entrez le montant...">
+<label>Montant :</label>
+<input type="number" id="montant" placeholder="Entrez le montant...">
 
-    <label>Description (optionnel) :</label>
-    <textarea id="description" rows="3" placeholder="Détails..."></textarea>
+<label>Description :</label>
+<textarea id="description" rows="3"></textarea>
 
-    <button onclick="ajouterVersement()">Enregistrer</button>
-    <button id="downloadPdfBtn">Télécharger le PDF</button>
+<button id="saveBtn">Enregistrer</button>
 
-    <div id="versementContainer"></div>
+<div id="versementContainer"></div>
 </div>
 
-<!-- Librairies PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <script>
-let versements = JSON.parse(localStorage.getItem("versementData") || "[]");
-let cimentData = JSON.parse(localStorage.getItem("cimentData") || "[]");
-let transportData = JSON.parse(localStorage.getItem("transportData") || "[]");
+const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbzeLdgHnapMca_JSAM2tBOyJ4OcydK-QZXTe8ejB3kG3ueQuimjM0x3VG7eqxfoCfR0mw/exec";
 
-function getMonthName(m){ 
-    return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"][m]; 
+document.getElementById("mobile-menu").onclick = () =>
+  document.getElementById("nav-links").classList.toggle("active");
+
+let versements = [];
+
+// ----------------------------------------------------
+// CHARGER LES DONNÉES
+// ----------------------------------------------------
+async function loadVersements() {
+  const res = await fetch(`${URL_GLOBAL}?type=versement`);
+  versements = await res.json();
+  renderVersements();
 }
 
-function groupByMonth(data){
-    let result = {};
-    data.forEach(v=>{
-        let d = new Date(v.date);
-        let key = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
-        if(!result[key]) result[key] = [];
-        result[key].push(v);
+function getMonthName(m) {
+  return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet",
+          "Août","Septembre","Octobre","Novembre","Décembre"][m];
+}
+
+// Regrouper par mois
+function groupByMonth(data) {
+  let result = {};
+  data.forEach(v => {
+    let d = new Date(v.values[0]);
+    let key = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
+    if (!result[key]) result[key] = [];
+    result[key].push(v);
+  });
+  return result;
+}
+
+// ----------------------------------------------------
+// AFFICHAGE DU TABLEAU
+// ----------------------------------------------------
+function renderVersements() {
+  const container = document.getElementById("versementContainer");
+  container.innerHTML = "";
+
+  const grouped = groupByMonth(versements);
+
+  for (let month in grouped) {
+    const rows = grouped[month];
+
+    const btn = document.createElement("button");
+    btn.className = "accordion-btn";
+    btn.textContent = `Versements du mois : ${month}`;
+
+    const content = document.createElement("div");
+    content.className = "accordion-content";
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Type</th><th>Montant</th>
+            <th>Description</th><th>Caisse</th>
+            <th>Modifier</th><th>Supprimer</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    rows.forEach((v) => {
+      html += `
+        <tr>
+          <td>${v.values[0]}</td>
+          <td>${v.values[1]}</td>
+          <td>${v.values[2]}</td>
+          <td>${v.values[3]}</td>
+          <td>${v.values[4]}</td>
+          <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
+          <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
+        </tr>
+      `;
     });
-    return result;
+
+    html += "</tbody></table>";
+    content.innerHTML = html;
+
+    btn.onclick = () => {
+      content.style.display = content.style.display === "block" ? "none" : "block";
+    };
+
+    container.appendChild(btn);
+    container.appendChild(content);
+  }
 }
 
-function calculCaisse(type){
-    let benef = 0;
-    if(type==="ciment"){
-        benef = cimentData.reduce((a,b)=>a+Number(b.benefice||0),0);
-        let depenseVerse = versements.filter(v=>v.type==="ciment").reduce((a,b)=>a+Number(b.montant),0);
-        return benef - depenseVerse;
-    } else {
-        benef = transportData.reduce((a,b)=>a+Number(b.benefice||0),0);
-        let depenseVerse = versements.filter(v=>v.type==="transport").reduce((a,b)=>a+Number(b.montant),0);
-        return benef - depenseVerse;
-    }
-}
+// ----------------------------------------------------
+// ENREGISTREMENT
+// ----------------------------------------------------
+document.getElementById("saveBtn").onclick = async () => {
+  const date = document.getElementById("date").value;
+  const type = document.getElementById("type").value;
+  const montant = document.getElementById("montant").value;
+  const description = document.getElementById("description").value;
 
-function afficher(){
-    let container = document.getElementById("versementContainer");
-    container.innerHTML = "";
+  if (!date || !montant) {
+    alert("Date et montant obligatoires");
+    return;
+  }
 
-    let grouped = groupByMonth(versements);
+  await fetch(`${URL_GLOBAL}?type=versement`, {
+    method: "POST",
+    body: JSON.stringify({ date, type, montant, description })
+  });
 
-    for(let month in grouped){
-        let monthData = grouped[month];
+  document.getElementById("date").value = "";
+  document.getElementById("montant").value = "";
+  document.getElementById("description").value = "";
 
-        let cimentRows = monthData.filter(v=>v.type==="ciment");
-        let transportRows = monthData.filter(v=>v.type==="transport");
-
-        let btn = document.createElement("button");
-        btn.className = "accordion-btn";
-        btn.textContent = `Versements du mois ${month}`;
-
-        let content = document.createElement("div");
-        content.className = "accordion-content";
-
-        // CIMENT
-        let totalCiment = cimentRows.reduce((a,b)=>a+Number(b.montant),0);
-        let cimentTable = `<h4>CIMENT</h4>
-            <table><thead><tr><th>Date</th><th>Montant</th><th>Description</th><th>Modifier</th><th>Supprimer</th></tr></thead>
-            <tbody>
-            ${cimentRows.map((v,i)=>`
-                <tr>
-                    <td>${v.date}</td>
-                    <td>${v.montant}</td>
-                    <td>${v.description}</td>
-                    <td><button class="action-btn edit" onclick="modifier(${versements.indexOf(v)})">Modifier</button></td>
-                    <td><button class="action-btn delete" onclick="supprimer(${versements.indexOf(v)})">Supprimer</button></td>
-                </tr>
-            `).join("")}
-            </tbody></table>
-            <div class="month-total">
-                <span>Total versé CIMENT : ${totalCiment} FCFA</span>
-                <span>Caisse : ${calculCaisse("ciment")} FCFA</span>
-            </div>`;
-
-        // TRANSPORT
-        let totalTransport = transportRows.reduce((a,b)=>a+Number(b.montant),0);
-        let transportTable = `<h4>TRANSPORT</h4>
-            <table><thead><tr><th>Date</th><th>Montant</th><th>Description</th><th>Modifier</th><th>Supprimer</th></tr></thead>
-            <tbody>
-            ${transportRows.map((v,i)=>`
-                <tr>
-                    <td>${v.date}</td>
-                    <td>${v.montant}</td>
-                    <td>${v.description}</td>
-                    <td><button class="action-btn edit" onclick="modifier(${versements.indexOf(v)})">Modifier</button></td>
-                    <td><button class="action-btn delete" onclick="supprimer(${versements.indexOf(v)})">Supprimer</button></td>
-                </tr>
-            `).join("")}
-            </tbody></table>
-            <div class="month-total">
-                <span>Total versé TRANSPORT : ${totalTransport} FCFA</span>
-                <span>Caisse : ${calculCaisse("transport")} FCFA</span>
-            </div>`;
-
-        content.innerHTML = cimentTable + transportTable;
-        btn.onclick = ()=>{ content.style.display = content.style.display==="block"?"none":"block"; };
-
-        container.appendChild(btn);
-        container.appendChild(content);
-    }
-}
-
-function ajouterVersement(){
-    let d = document.getElementById("date").value;
-    let m = document.getElementById("montant").value;
-    let desc = document.getElementById("description").value;
-    let type = document.getElementById("type").value;
-    if(!d || !m){ alert("Veuillez remplir la date et le montant."); return; }
-
-    versements.push({date:d, montant:m, description:desc, type:type});
-    localStorage.setItem("versementData", JSON.stringify(versements));
-
-    document.getElementById("date").value="";
-    document.getElementById("montant").value="";
-    document.getElementById("description").value="";
-
-    afficher();
-}
-
-function modifier(i){
-    let nv = prompt("Nouveau montant :", versements[i].montant);
-    if(nv===null) return;
-    let nd = prompt("Nouvelle description :", versements[i].description);
-    versements[i].montant = nv; versements[i].description = nd;
-    localStorage.setItem("versementData", JSON.stringify(versements));
-    afficher();
-}
-
-function supprimer(i){
-    if(confirm("Supprimer ce versement ?")){
-        versements.splice(i,1);
-        localStorage.setItem("versementData", JSON.stringify(versements));
-        afficher();
-    }
-}
-
-afficher();
-
-// PDF GENERATION
-document.getElementById("downloadPdfBtn").onclick = async () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("p", "pt", "a4");
-    const element = document.getElementById("versementContainer");
-
-    const canvas = await html2canvas(element, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-    const imgProps = doc.getImageProperties(imgData);
-    const pdfWidth = doc.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    doc.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    doc.save("versements_sodama.pdf");
+  loadVersements();
 };
+
+// ----------------------------------------------------
+// SUPPRIMER
+// ----------------------------------------------------
+async function deleteVersement(row) {
+  if (!confirm("Supprimer ?")) return;
+
+  await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`, {
+    method: "GET"
+  });
+
+  loadVersements();
+}
+
+// ----------------------------------------------------
+// MODIFIER
+// ----------------------------------------------------
+function editVersement(row) {
+  const v = versements.find(x => x.row === row).values;
+
+  document.getElementById("date").value = v[0];
+  document.getElementById("type").value = v[1];
+  document.getElementById("montant").value = v[2];
+  document.getElementById("description").value = v[3];
+
+  // replace save action
+  document.getElementById("saveBtn").onclick = async () => {
+    await fetch(`${URL_GLOBAL}?type=versement&edit=${row}`, {
+      method: "POST",
+      body: JSON.stringify({
+        date: v[0],
+        type: v[1],
+        montant: v[2],
+        description: v[3]
+      })
+    });
+
+    loadVersements();
+
+    // restore save function
+    document.getElementById("saveBtn").onclick = saveVersement;
+  };
+}
+
+loadVersements();
 </script>
 
 </body>
