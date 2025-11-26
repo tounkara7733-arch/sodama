@@ -32,7 +32,6 @@ th, td { border:1px solid #0a3d62; padding:10px; text-align:center; }
 .block { width:48%; }
 @media(max-width:900px){ .flex-container{ flex-direction:column; } .block{ width:100%; } }
 
-.month-total { margin-top:10px; padding:10px; background:#dfeaff; border-left:5px solid #0a3d62; }
 .total-global { background:#0a3d62; color:white; padding:15px; margin:30px auto; width:90%; text-align:center; border-radius:10px; font-size:1.3rem; }
 
 #downloadPdfBtn { margin:20px auto; display:block; background:#0a3d62; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; }
@@ -67,7 +66,7 @@ TOTAL GLOBAL BÉNÉFICE : <span id="global_benef">0</span> FCFA
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
-const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbzeLdgHnapMca_JSAM2tBOyJ4OcydK-QZXTe8ejB3kG3ueQuimjM0x3VG7eqxfoCfR0mw/exec";
+const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbxropcFIsP3FX9Ztr2wdgCsiPmLizVv6ayDAtKSs4gH0Ts7fe9hJqOv22TuDwI2MXlP/exec";
 
 document.getElementById("mobile-menu").onclick = () =>
   document.getElementById("nav-links").classList.toggle("active");
@@ -83,26 +82,42 @@ async function loadData(){
   renderReport();
 }
 
+// ------------------------------
+// UTILITAIRES
+// ------------------------------
 function getMonthName(m){
   return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet",
           "Août","Septembre","Octobre","Novembre","Décembre"][m];
 }
 
-// ------------------------------
-// GROUPE PAR MOIS
-// ------------------------------
+// Grouper par mois
 function groupByMonth(data){
   let result = {};
   data.forEach(item=>{
     let row = item.values;
-    if(row[0] && !isNaN(new Date(row[0]).getTime())){
-      let d = new Date(row[0]);
-      let key = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
+    if(row[0]){
+      // garde la date telle quelle, pas de conversion
+      let d = row[0].split('T')[0];
+      let dt = new Date(d);
+      let key = `${getMonthName(dt.getMonth())} ${dt.getFullYear()}`;
       if(!result[key]) result[key] = [];
       result[key].push(row);
     }
   });
   return result;
+}
+
+// Trier les mois chronologiquement
+function sortMonths(months){
+  return months.sort((a,b)=>{
+    const [m1,y1] = a.split(' ');
+    const [m2,y2] = b.split(' ');
+    const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet",
+                        "Août","Septembre","Octobre","Novembre","Décembre"];
+    const d1 = new Date(Number(y1), monthNames.indexOf(m1));
+    const d2 = new Date(Number(y2), monthNames.indexOf(m2));
+    return d1 - d2;
+  });
 }
 
 // ------------------------------
@@ -115,9 +130,9 @@ function renderReport(){
   const cimentByMonth = groupByMonth(cimentData);
   const transportByMonth = groupByMonth(transportData);
 
-  const allMonths = Array.from(
+  const allMonths = sortMonths(Array.from(
       new Set([...Object.keys(cimentByMonth), ...Object.keys(transportByMonth)])
-  );
+  ));
 
   let globalBenef = 0;
 
@@ -159,7 +174,7 @@ function renderReport(){
         <tr><th>Date</th><th>Tonnage</th><th>Dépense</th><th>Bénéfice</th></tr>
         ${transportRows.map(x=>`
           <tr>
-            <td>${x[0]}</td><td>${x[1]}</td><td>${x[3]}</td><td>${x[5]}</td>
+            <td>${x[0].split('T')[0]}</td><td>${x[1]}</td><td>${x[3]}</td><td>${x[5]}</td>
           </tr>
         `).join("")}
         <tr class="total-row"><td>TOTAL</td><td>${tt.tonnage}</td><td>${tt.depense}</td><td>${tt.benefice}</td></tr>
@@ -172,7 +187,7 @@ function renderReport(){
         <tr><th>Date</th><th>Tonnage</th><th>Dépense</th><th>Bénéfice</th></tr>
         ${cimentRows.map(x=>`
           <tr>
-            <td>${x[0]}</td><td>${x[1]}</td><td>${x[4]}</td><td>${x[5]}</td>
+            <td>${x[0].split('T')[0]}</td><td>${x[1]}</td><td>${x[4]}</td><td>${x[5]}</td>
           </tr>
         `).join("")}
         <tr class="total-row"><td>TOTAL</td><td>${tc.tonnage}</td><td>${tc.depense}</td><td>${tc.benefice}</td></tr>

@@ -25,8 +25,8 @@ form textarea { width:100%; height:80px; resize:vertical;}
 form button { width:100%; padding:10px; border:none; background:#0a3d62; color:white; border-radius:5px; cursor:pointer;}
 table { width:95%; margin:15px auto; border-collapse:collapse;}
 th, td { border:1px solid #0a3d62; padding:10px; text-align:center;}
-button.edit { background:#1e3799; color:white; border:none; padding:5px 10px; border-radius:5px;}
-button.delete { background:#eb2f06; color:white; border:none; padding:5px 10px; border-radius:5px;}
+button.edit { background:#1e3799; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;}
+button.delete { background:#eb2f06; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;}
 .accordion-btn {width:95%; margin:15px auto; background:#0a3d62; color:white; padding:10px; font-size:1rem; border:none; border-radius:5px; cursor:pointer; text-align:left;}
 .accordion-content {display:none; width:95%; margin:0 auto 20px; border:1px solid #0a3d62; border-radius:5px; padding:10px;}
 </style>
@@ -61,88 +61,73 @@ button.delete { background:#eb2f06; color:white; border:none; padding:5px 10px; 
 <script>
 document.getElementById("mobile-menu").onclick = () => document.getElementById("nav-links").classList.toggle("active");
 
-const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbzeLdgHnapMca_JSAM2tBOyJ4OcydK-QZXTe8ejB3kG3ueQuimjM0x3VG7eqxfoCfR0mw/exec";
+const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbxropcFIsP3FX9Ztr2wdgCsiPmLizVv6ayDAtKSs4gH0Ts7fe9hJqOv22TuDwI2MXlP/exec"; // 🔹 Remplace par ton WebApp URL
 
 let transportData = [];
 let editRowIndex = null;
 
-// Utilitaire pour obtenir mois/année
-function getMonthKey(dateStr){
-    const d = new Date(dateStr);
-    return `${d.getMonth()+1}-${d.getFullYear()}`;
-}
+function formatFCFA(val){ return Number(val).toLocaleString('fr-FR') + " FCFA"; }
+function getMonthKey(dateStr){ const d = new Date(dateStr); return `${d.getMonth()+1}-${d.getFullYear()}`; }
 
-// Charger les données
+// Charger données
 async function loadTransportData(){
     try{
         const res = await fetch(`${GLOBAL_URL}?type=transport`);
         const rows = await res.json();
         transportData = rows.map(r=>({
-            sheetRow: r.sheetRow,
+            sheetRow: r.row,
             date: r.values[0],
-            tonnage: r.values[1],
-            prixUnitaire: r.values[2],
-            depense: r.values[3],
-            description: r.values[4],
-            benefice: r.values[5]
+            tonnage: parseFloat(r.values[1]) || 0,
+            prixUnitaire: parseFloat(r.values[2]) || 0,
+            depense: parseFloat(r.values[3]) || 0,
+            description: r.values[4] || "",
+            benefice: parseFloat(r.values[5]) || ((parseFloat(r.values[1]||0)*parseFloat(r.values[2]||0)) - parseFloat(r.values[3]||0))
         }));
         renderTable();
-    } catch(e){
-        console.error("Erreur fetch Transport:", e);
-    }
+    } catch(e){ console.error("Erreur fetch Transport:", e); }
 }
 
-// Affichage par mois avec accordéon
+// Rendu tableau
 function renderTable(){
     const container = document.getElementById("transportContainer");
     container.innerHTML = "";
-
     transportData.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    // Grouper par mois
     const grouped = {};
     transportData.forEach(item=>{
         const key = getMonthKey(item.date);
-        if(!grouped[key]) grouped[key] = [];
+        if(!grouped[key]) grouped[key]=[];
         grouped[key].push(item);
     });
 
     for(const month in grouped){
         const btn = document.createElement("button");
-        btn.className = "accordion-btn";
-        const firstDate = grouped[month][0].date.split('T')[0];
-        const lastDate = grouped[month][grouped[month].length-1].date.split('T')[0];
-        btn.textContent = `Gestion du mois: ${firstDate} - ${lastDate}`;
-
+        btn.className="accordion-btn";
+        btn.textContent=`Mois: ${month}`;
         const content = document.createElement("div");
-        content.className = "accordion-content";
+        content.className="accordion-content";
 
-        let tableHTML = `<table><thead>
-        <tr>
-        <th>Date</th><th>Tonnage</th><th>Prix Unitaire</th><th>Dépense</th><th>Bénéfice</th><th>Actions</th>
-        </tr></thead><tbody>`;
+        let tableHTML=`<table><thead>
+        <tr><th>Date</th><th>Tonnage</th><th>Prix Unitaire</th><th>Dépense</th><th>Bénéfice</th><th>Actions</th></tr>
+        </thead><tbody>`;
 
         grouped[month].forEach(item=>{
             const formattedDate = item.date.split('T')[0];
-            tableHTML += `<tr>
-                <td>${formattedDate}</td>
-                <td>${item.tonnage}</td>
-                <td>${item.prixUnitaire}</td>
-                <td>${item.depense}</td>
-                <td>${item.benefice}</td>
-                <td>
-                <button class="edit" onclick="prepareEdit(${item.sheetRow})">Modifier</button>
-                <button class="delete" onclick="deleteRow(${item.sheetRow})">Supprimer</button>
-                </td>
-            </tr>`;
+            tableHTML+=`<tr>
+            <td>${formattedDate}</td>
+            <td>${item.tonnage}</td>
+            <td>${formatFCFA(item.prixUnitaire*item.tonnage)}</td>
+            <td>${formatFCFA(item.depense)}</td>
+            <td>${formatFCFA(item.benefice)}</td>
+            <td>
+            <button class="edit" onclick="prepareEdit(${item.sheetRow})">Modifier</button>
+            <button class="delete" onclick="deleteRow(${item.sheetRow})">Supprimer</button>
+            </td></tr>`;
         });
-
-        tableHTML += "</tbody></table>";
+        tableHTML+="</tbody></table>";
         content.innerHTML = tableHTML;
-
-        btn.onclick = ()=>{ content.style.display = content.style.display==="block"?"none":"block"; };
-        container.appendChild(btn);
-        container.appendChild(content);
+        btn.onclick = ()=>{ content.style.display=content.style.display==="block"?"none":"block"; };
+        container.appendChild(btn); container.appendChild(content);
     }
 }
 
@@ -157,7 +142,7 @@ function prepareEdit(sheetRow){
     editRowIndex = sheetRow;
 }
 
-// Ajouter ou modifier
+// Ajouter / modifier
 document.getElementById("transportForm").addEventListener("submit", async function(e){
     e.preventDefault();
     const date = document.getElementById("date").value;
@@ -166,26 +151,18 @@ document.getElementById("transportForm").addEventListener("submit", async functi
     const depense = parseFloat(document.getElementById("depense").value);
     const description = document.getElementById("description").value;
     const benefice = (tonnage*prixUnitaire)-depense;
-    const data = [date, tonnage, prixUnitaire, depense, description, benefice];
+    const data=[date, tonnage, prixUnitaire, depense, description, benefice];
 
     try{
         if(editRowIndex){
-            await fetch(`${GLOBAL_URL}?type=transport&edit=${editRowIndex}`,{
-                method:"POST",
-                body: JSON.stringify(data)
-            });
-            editRowIndex = null;
+            await fetch(`${GLOBAL_URL}?type=transport&edit=${editRowIndex}`,{ method:"POST", body:JSON.stringify(data) });
+            editRowIndex=null;
         } else {
-            await fetch(`${GLOBAL_URL}?type=transport`,{
-                method:"POST",
-                body: JSON.stringify(data)
-            });
+            await fetch(`${GLOBAL_URL}?type=transport`,{ method:"POST", body:JSON.stringify(data) });
         }
-        loadTransportData();
         this.reset();
-    } catch(e){
-        console.error("Erreur POST Transport:", e);
-    }
+        loadTransportData();
+    } catch(e){ console.error("Erreur POST Transport:", e); }
 });
 
 // Supprimer ligne
@@ -194,9 +171,7 @@ async function deleteRow(sheetRow){
     try{
         await fetch(`${GLOBAL_URL}?type=transport&action=delete&index=${sheetRow}`);
         loadTransportData();
-    } catch(e){
-        console.error("Erreur DELETE Transport:", e);
-    }
+    } catch(e){ console.error("Erreur DELETE Transport:", e); }
 }
 
 // Initial

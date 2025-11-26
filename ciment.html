@@ -8,7 +8,7 @@
 body { font-family: Arial, sans-serif; margin:0; background:#ffffff; color:#0a3d62; }
 .navbar { display:flex; justify-content:space-between; align-items:center; background:#0a3d62; padding:10px 20px; color:white; }
 .navbar .logo { font-size:1.5rem; font-weight:bold; }
-.navbar ul { display:flex; list-style:none; gap:15px; }
+.navbar ul { display:flex; list-style:none; }
 .navbar ul li a { text-decoration:none; color:white; padding:8px 15px; border-radius:5px; font-weight:bold; }
 .navbar ul li a:hover { background:white; color:#0a3d62; }
 .menu-toggle { display:none; flex-direction:column; cursor:pointer; }
@@ -58,89 +58,74 @@ document.getElementById("mobile-menu").onclick = () => {
     document.getElementById("nav-links").classList.toggle("active");
 };
 
-const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbzeLdgHnapMca_JSAM2tBOyJ4OcydK-QZXTe8ejB3kG3ueQuimjM0x3VG7eqxfoCfR0mw/exec";
+const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbxropcFIsP3FX9Ztr2wdgCsiPmLizVv6ayDAtKSs4gH0Ts7fe9hJqOv22TuDwI2MXlP/exec"; // 🔹 Remplace par ton WebApp URL
 
 let cimentData = [];
 let editRowIndex = null;
 
-// Utilitaire pour obtenir mois/année
-function getMonthKey(dateStr){
-    const d = new Date(dateStr);
-    return `${d.getMonth()+1}-${d.getFullYear()}`;
-}
+function formatFCFA(val){ return Number(val).toLocaleString('fr-FR') + " FCFA"; }
+function getMonthKey(dateStr){ const d = new Date(dateStr); return `${d.getMonth()+1}-${d.getFullYear()}`; }
 
-// Charger les données
+// Charger données
 async function loadCimentData(){
     try{
         const res = await fetch(`${GLOBAL_URL}?type=ciment`);
         const rows = await res.json();
         cimentData = rows.map(r=>({
-            sheetRow: r.sheetRow,
+            sheetRow: r.row,
             date: r.values[0],
-            tonnage: r.values[1],
-            prixAchat: r.values[2],
-            prixVente: r.values[3],
-            depense: r.values[4],
-            benefice: r.values[5]
+            tonnage: parseFloat(r.values[1]) || 0,
+            prixAchat: parseFloat(r.values[2]) || 0,
+            prixVente: parseFloat(r.values[3]) || 0,
+            depense: parseFloat(r.values[4]) || 0,
+            benefice: parseFloat(r.values[5]) || ((parseFloat(r.values[3]||0)*parseFloat(r.values[1]||0)) - (parseFloat(r.values[2]||0)*parseFloat(r.values[1]||0)) - parseFloat(r.values[4]||0))
         }));
         renderTable();
-    } catch(e){
-        console.error("Erreur fetch Ciment:", e);
-    }
+    } catch(e){ console.error("Erreur fetch Ciment:", e); }
 }
 
-// Affichage par mois avec accordéon
+// Rendu tableau
 function renderTable(){
     const container = document.getElementById("cimentContainer");
     container.innerHTML = "";
-
     cimentData.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    // Grouper par mois
     const grouped = {};
     cimentData.forEach(item=>{
         const key = getMonthKey(item.date);
-        if(!grouped[key]) grouped[key] = [];
+        if(!grouped[key]) grouped[key]=[];
         grouped[key].push(item);
     });
 
     for(const month in grouped){
         const btn = document.createElement("button");
-        btn.className = "accordion-btn";
-        const firstDate = grouped[month][0].date.split('T')[0];
-        const lastDate = grouped[month][grouped[month].length-1].date.split('T')[0];
-        btn.textContent = `Gestion du mois: ${firstDate} - ${lastDate}`;
-
+        btn.className="accordion-btn";
+        btn.textContent=`Mois: ${month}`;
         const content = document.createElement("div");
-        content.className = "accordion-content";
+        content.className="accordion-content";
 
-        let tableHTML = `<table><thead>
-        <tr>
-        <th>Date</th><th>Tonnage</th><th>Achat</th><th>Vente</th><th>Dépenses</th><th>Bénéfice</th><th>Actions</th>
-        </tr></thead><tbody>`;
+        let tableHTML=`<table><thead>
+        <tr><th>Date</th><th>Tonnage</th><th>Achat</th><th>Vente</th><th>Dépenses</th><th>Bénéfice</th><th>Actions</th></tr>
+        </thead><tbody>`;
 
         grouped[month].forEach(item=>{
             const formattedDate = item.date.split('T')[0];
-            tableHTML += `<tr>
-                <td>${formattedDate}</td>
-                <td>${item.tonnage}</td>
-                <td>${item.prixAchat}</td>
-                <td>${item.prixVente}</td>
-                <td>${item.depense}</td>
-                <td>${item.benefice}</td>
-                <td>
-                <button class="edit" onclick="prepareEdit(${item.sheetRow})">Modifier</button>
-                <button class="delete" onclick="deleteRow(${item.sheetRow})">Supprimer</button>
-                </td>
-            </tr>`;
+            tableHTML+=`<tr>
+            <td>${formattedDate}</td>
+            <td>${item.tonnage}</td>
+            <td>${formatFCFA(item.prixAchat*item.tonnage)}</td>
+            <td>${formatFCFA(item.prixVente*item.tonnage)}</td>
+            <td>${formatFCFA(item.depense)}</td>
+            <td>${formatFCFA(item.benefice)}</td>
+            <td>
+            <button class="edit" onclick="prepareEdit(${item.sheetRow})">Modifier</button>
+            <button class="delete" onclick="deleteRow(${item.sheetRow})">Supprimer</button>
+            </td></tr>`;
         });
-
-        tableHTML += "</tbody></table>";
+        tableHTML+="</tbody></table>";
         content.innerHTML = tableHTML;
-
-        btn.onclick = ()=>{ content.style.display = content.style.display==="block"?"none":"block"; };
-        container.appendChild(btn);
-        container.appendChild(content);
+        btn.onclick = ()=>{ content.style.display=content.style.display==="block"?"none":"block"; };
+        container.appendChild(btn); container.appendChild(content);
     }
 }
 
@@ -155,7 +140,7 @@ function prepareEdit(sheetRow){
     editRowIndex = sheetRow;
 }
 
-// Ajouter ou modifier
+// Ajouter / modifier
 document.getElementById("cimentForm").addEventListener("submit", async function(e){
     e.preventDefault();
     const date = document.getElementById("date").value;
@@ -164,26 +149,18 @@ document.getElementById("cimentForm").addEventListener("submit", async function(
     const prixVente = parseFloat(document.getElementById("prixVente").value);
     const depense = parseFloat(document.getElementById("depense").value);
     const benefice = (tonnage*prixVente)-(tonnage*prixAchat)-depense;
-    const data = [date, tonnage, prixAchat, prixVente, depense, benefice];
+    const data=[date, tonnage, prixAchat, prixVente, depense, benefice];
 
     try{
         if(editRowIndex){
-            await fetch(`${GLOBAL_URL}?type=ciment&edit=${editRowIndex}`,{
-                method:"POST",
-                body: JSON.stringify(data)
-            });
-            editRowIndex = null;
+            await fetch(`${GLOBAL_URL}?type=ciment&edit=${editRowIndex}`,{ method:"POST", body:JSON.stringify(data) });
+            editRowIndex=null;
         } else {
-            await fetch(`${GLOBAL_URL}?type=ciment`,{
-                method:"POST",
-                body: JSON.stringify(data)
-            });
+            await fetch(`${GLOBAL_URL}?type=ciment`,{ method:"POST", body:JSON.stringify(data) });
         }
-        loadCimentData();
         this.reset();
-    } catch(e){
-        console.error("Erreur POST Ciment:", e);
-    }
+        loadCimentData();
+    } catch(e){ console.error("Erreur POST Ciment:", e); }
 });
 
 // Supprimer ligne
@@ -191,9 +168,7 @@ async function deleteRow(sheetRow){
     try{
         await fetch(`${GLOBAL_URL}?type=ciment&action=delete&index=${sheetRow}`);
         loadCimentData();
-    } catch(e){
-        console.error("Erreur DELETE Ciment:", e);
-    }
+    } catch(e){ console.error("Erreur DELETE Ciment:", e); }
 }
 
 // Initial

@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SODAMA - Versements</title>
-
 <style>
 body { font-family: Arial; margin:0; background:#f4f4f4; color:#0a3d62;}
 .navbar { display:flex; justify-content:space-between; align-items:center; background:#0a3d62; padding:10px 20px; color:white;}
@@ -12,54 +11,30 @@ body { font-family: Arial; margin:0; background:#f4f4f4; color:#0a3d62;}
 .navbar ul { display:flex; list-style:none; gap:15px; }
 .navbar ul li a { color:white; text-decoration:none; padding:8px 15px; border-radius:5px; font-weight:bold;}
 .navbar ul li a:hover { background:white; color:#0a3d62;}
-
 .menu-toggle { display:none; flex-direction:column; cursor:pointer;}
 .menu-toggle span { width:25px; height:3px; background:white; margin:3px 0;}
-
 @media(max-width:768px){
   .menu-toggle{display:flex;}
   .navbar ul{display:none; flex-direction:column; background:#0a3d62; width:200px; position:absolute; top:60px; right:0; padding:10px;}
   .navbar ul.active{display:flex;}
 }
-
 .container { width:95%; max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:10px; }
-
 h2 { text-align:center; margin-bottom:20px; }
-
-input, select, textarea, button {
-  width:100%; padding:10px; margin:8px 0; border-radius:5px; border:1px solid #aaa;
-}
-
+input, select, textarea, button { width:100%; padding:10px; margin:8px 0; border-radius:5px; border:1px solid #aaa; }
 button { background:#0a3d62; color:white; border:none; cursor:pointer; font-weight:bold; }
 button:hover { background:#074267; }
-
 table { width:100%; border-collapse:collapse; margin-top:15px; }
 th, td { border:1px solid #aaa; padding:10px; text-align:center; }
 th { background:#0a3d62; color:white; }
-
 .action-btn { padding:6px 10px; color:white; border:none; cursor:pointer; border-radius:4px; }
 .edit { background:orange; }
 .delete { background:red; }
-
-.accordion-btn {
-  width:100%; background:#0a3d62; color:white; padding:12px;
-  font-size:1.1rem; border:none; border-radius:8px; cursor:pointer;
-  margin-top:15px; text-align:left;
-}
-
-.accordion-content {
-  display:none; margin-top:10px; border:2px solid #0a3d62; padding:15px; border-radius:8px;
-}
-
-.caisse-box {
-  margin-top:8px; padding:10px; background:#dfeaff; border-left:5px solid #0a3d62;
-  font-weight:bold; display:flex; justify-content:space-between;
-}
+.accordion-btn { width:100%; background:#0a3d62; color:white; padding:12px; font-size:1.1rem; border:none; border-radius:8px; cursor:pointer; margin-top:15px; text-align:left; }
+.accordion-content { display:none; margin-top:10px; border:2px solid #0a3d62; padding:15px; border-radius:8px; }
 </style>
 </head>
 
 <body>
-
 <nav class="navbar">
   <div class="logo">SODAMA</div>
   <div class="menu-toggle" id="mobile-menu"><span></span><span></span><span></span></div>
@@ -96,167 +71,127 @@ th { background:#0a3d62; color:white; }
 </div>
 
 <script>
-const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbzeLdgHnapMca_JSAM2tBOyJ4OcydK-QZXTe8ejB3kG3ueQuimjM0x3VG7eqxfoCfR0mw/exec";
-
-document.getElementById("mobile-menu").onclick = () =>
-  document.getElementById("nav-links").classList.toggle("active");
+const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbxropcFIsP3FX9Ztr2wdgCsiPmLizVv6ayDAtKSs4gH0Ts7fe9hJqOv22TuDwI2MXlP/exec"; // 🔹 Remplace par ton WebApp URL
+document.getElementById("mobile-menu").onclick = () => document.getElementById("nav-links").classList.toggle("active");
 
 let versements = [];
+let editRowIndex = null;
 
-// ----------------------------------------------------
-// CHARGER LES DONNÉES
-// ----------------------------------------------------
-async function loadVersements() {
-  const res = await fetch(`${URL_GLOBAL}?type=versement`);
-  versements = await res.json();
-  renderVersements();
+// Utilitaires
+function getMonthName(m){ return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"][m]; }
+function formatDate(d){ return new Date(d).toISOString().split('T')[0]; }
+
+// Charger les données
+async function loadVersements(){
+    const res = await fetch(`${URL_GLOBAL}?type=versement`);
+    const rows = await res.json();
+    versements = rows.map(r=>({
+        row: r.row,
+        date: r.values[0],
+        type: r.values[1],
+        montant: parseFloat(r.values[2]),
+        description: r.values[3]
+    }));
+    renderVersements();
 }
 
-function getMonthName(m) {
-  return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet",
-          "Août","Septembre","Octobre","Novembre","Décembre"][m];
-}
-
-// Regrouper par mois
-function groupByMonth(data) {
-  let result = {};
-  data.forEach(v => {
-    let d = new Date(v.values[0]);
-    let key = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
-    if (!result[key]) result[key] = [];
-    result[key].push(v);
-  });
-  return result;
-}
-
-// ----------------------------------------------------
-// AFFICHAGE DU TABLEAU
-// ----------------------------------------------------
-function renderVersements() {
-  const container = document.getElementById("versementContainer");
-  container.innerHTML = "";
-
-  const grouped = groupByMonth(versements);
-
-  for (let month in grouped) {
-    const rows = grouped[month];
-
-    const btn = document.createElement("button");
-    btn.className = "accordion-btn";
-    btn.textContent = `Versements du mois : ${month}`;
-
-    const content = document.createElement("div");
-    content.className = "accordion-content";
-
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th><th>Type</th><th>Montant</th>
-            <th>Description</th><th>Caisse</th>
-            <th>Modifier</th><th>Supprimer</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    rows.forEach((v) => {
-      html += `
-        <tr>
-          <td>${v.values[0]}</td>
-          <td>${v.values[1]}</td>
-          <td>${v.values[2]}</td>
-          <td>${v.values[3]}</td>
-          <td>${v.values[4]}</td>
-          <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
-          <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
-        </tr>
-      `;
+// Grouper par mois
+function groupByMonth(data){
+    let result = {};
+    data.forEach(v=>{
+        const d = new Date(v.date);
+        const key = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
+        if(!result[key]) result[key]=[];
+        result[key].push(v);
     });
-
-    html += "</tbody></table>";
-    content.innerHTML = html;
-
-    btn.onclick = () => {
-      content.style.display = content.style.display === "block" ? "none" : "block";
-    };
-
-    container.appendChild(btn);
-    container.appendChild(content);
-  }
+    return result;
 }
 
-// ----------------------------------------------------
-// ENREGISTREMENT
-// ----------------------------------------------------
-document.getElementById("saveBtn").onclick = async () => {
-  const date = document.getElementById("date").value;
-  const type = document.getElementById("type").value;
-  const montant = document.getElementById("montant").value;
-  const description = document.getElementById("description").value;
+// Rendu tableau
+function renderVersements(){
+    const container = document.getElementById("versementContainer");
+    container.innerHTML = "";
+    const grouped = groupByMonth(versements);
 
-  if (!date || !montant) {
-    alert("Date et montant obligatoires");
-    return;
-  }
+    for(const month in grouped){
+        const rows = grouped[month];
+        const btn = document.createElement("button");
+        btn.className="accordion-btn";
+        btn.textContent=`Versements du mois : ${month}`;
 
-  await fetch(`${URL_GLOBAL}?type=versement`, {
-    method: "POST",
-    body: JSON.stringify({ date, type, montant, description })
-  });
+        const content = document.createElement("div");
+        content.className="accordion-content";
 
-  document.getElementById("date").value = "";
-  document.getElementById("montant").value = "";
-  document.getElementById("description").value = "";
+        let html = `<table><thead>
+            <tr><th>Date</th><th>Type</th><th>Montant</th><th>Description</th>
+            <th>Modifier</th><th>Supprimer</th></tr></thead><tbody>`;
 
-  loadVersements();
-};
+        rows.forEach(v=>{
+            html+=`<tr>
+                <td>${formatDate(v.date)}</td>
+                <td>${v.type}</td>
+                <td>${v.montant.toLocaleString('fr-FR')} FCFA</td>
+                <td>${v.description}</td>
+                <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
+                <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
+            </tr>`;
+        });
 
-// ----------------------------------------------------
-// SUPPRIMER
-// ----------------------------------------------------
-async function deleteVersement(row) {
-  if (!confirm("Supprimer ?")) return;
+        html+="</tbody></table>";
+        content.innerHTML=html;
 
-  await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`, {
-    method: "GET"
-  });
-
-  loadVersements();
+        btn.onclick = ()=>{ content.style.display = content.style.display==="block"?"none":"block"; };
+        container.appendChild(btn);
+        container.appendChild(content);
+    }
 }
 
-// ----------------------------------------------------
-// MODIFIER
-// ----------------------------------------------------
-function editVersement(row) {
-  const v = versements.find(x => x.row === row).values;
+// Enregistrer ou modifier
+async function saveVersement(){
+    const date = document.getElementById("date").value;
+    const type = document.getElementById("type").value;
+    const montant = parseFloat(document.getElementById("montant").value);
+    const description = document.getElementById("description").value;
 
-  document.getElementById("date").value = v[0];
-  document.getElementById("type").value = v[1];
-  document.getElementById("montant").value = v[2];
-  document.getElementById("description").value = v[3];
+    if(!date || !montant){ alert("Date et montant obligatoires"); return; }
 
-  // replace save action
-  document.getElementById("saveBtn").onclick = async () => {
-    await fetch(`${URL_GLOBAL}?type=versement&edit=${row}`, {
-      method: "POST",
-      body: JSON.stringify({
-        date: v[0],
-        type: v[1],
-        montant: v[2],
-        description: v[3]
-      })
-    });
+    const data = { date, type, montant, description };
+
+    if(editRowIndex){
+        await fetch(`${URL_GLOBAL}?type=versement&edit=${editRowIndex}`, { method:"POST", body:JSON.stringify(data) });
+        editRowIndex=null;
+    } else {
+        await fetch(`${URL_GLOBAL}?type=versement`, { method:"POST", body:JSON.stringify(data) });
+    }
+
+    document.getElementById("date").value="";
+    document.getElementById("montant").value="";
+    document.getElementById("description").value="";
 
     loadVersements();
-
-    // restore save function
-    document.getElementById("saveBtn").onclick = saveVersement;
-  };
 }
 
+// Modifier
+function editVersement(row){
+    const v = versements.find(x=>x.row===row);
+    document.getElementById("date").value = v.date;
+    document.getElementById("type").value = v.type;
+    document.getElementById("montant").value = v.montant;
+    document.getElementById("description").value = v.description;
+    editRowIndex = row;
+}
+
+// Supprimer
+async function deleteVersement(row){
+    if(!confirm("Supprimer ce versement ?")) return;
+    await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`);
+    loadVersements();
+}
+
+document.getElementById("saveBtn").onclick = saveVersement;
+
+// Initial
 loadVersements();
 </script>
-
 </body>
 </html>
