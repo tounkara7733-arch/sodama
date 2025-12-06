@@ -95,7 +95,7 @@ th { background:#0a3d62; color:white; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
-const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbzR-6D78_LcroRmtOjF5kNqidZ9HTAddzylWHc_eq7pfEKOESFGextkWQhr-Uxx6B1nGw/exec";
+const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbzhJNpg-lQt0pPz2RdKPU86_LWuvo1ubDJJyWWhQ_CJUcennw5SEhlIWntC3GBi_655hQ/exec";
 document.getElementById("mobile-menu").onclick = () => document.getElementById("nav-links").classList.toggle("active");
 
 let versements = [], cimentData = [], transportData = [];
@@ -107,187 +107,206 @@ function formatFCFA(val){ return Number(val).toLocaleString('fr-FR') + " FCFA"; 
 
 // CHARGER TOUTES LES DONNÉES
 async function loadAllData(){
-  try {
-    const [versRes, cimentRes, transportRes] = await Promise.all([
-      fetch(`${URL_GLOBAL}?type=versement`),
-      fetch(`${URL_GLOBAL}?type=ciment`),
-      fetch(`${URL_GLOBAL}?type=transport`)
-    ]);
-    
-    versements = await versRes.json();
-    cimentData = await cimentRes.json();
-    transportData = await transportRes.json();
-    
-    // Convertir versements en format compatible
-    versements = versements.map(r => ({
-      row: r.row,
-      date: r.values[0],
-      type: r.values[1],
-      montant: parseFloat(r.values[2]) || 0,
-      description: r.values[3] || ""
-    }));
-    
-    updateBalances();
-    renderVersements();
-  } catch(e) {
-    console.error("Erreur chargement:", e);
-  }
+    try {
+        console.log("📥 Chargement Versements...");
+        const [versRes, cimentRes, transportRes] = await Promise.all([
+            fetch(`${URL_GLOBAL}?type=versement`),
+            fetch(`${URL_GLOBAL}?type=ciment`),
+            fetch(`${URL_GLOBAL}?type=transport`)
+        ]);
+        
+        versements = await versRes.json();
+        cimentData = await cimentRes.json();
+        transportData = await transportRes.json();
+        
+        console.log("✅ Versements:", versements.length, "lignes");
+        console.log("✅ Ciment:", cimentData.length, "lignes");
+        console.log("✅ Transport:", transportData.length, "lignes");
+        
+        // Convertir versements en format compatible
+        versements = versements.map(r => ({
+            row: r.row,
+            date: r.values[0],
+            type: r.values[1],
+            montant: parseFloat(r.values[2]) || 0,
+            description: r.values[3] || ""
+        }));
+        
+        updateBalances();
+        renderVersements();
+    } catch(e) {
+        console.error("❌ Erreur chargement:", e);
+        document.getElementById("versementContainer").innerHTML = "<p style='text-align:center;color:red;'>Erreur chargement données</p>";
+    }
 }
 
 // SOLDES DISPONIBLES
 function updateBalances(){
-  const beneficeCimentTotal = cimentData.reduce((sum, r) => sum + (parseFloat(r.values[5]) || 0), 0);
-  const beneficeTransportTotal = transportData.reduce((sum, r) => sum + (parseFloat(r.values[5]) || 0), 0);
-  
-  const versementsCiment = versements.filter(v => v.type === "ciment").reduce((sum, v) => sum + v.montant, 0);
-  const versementsTransport = versements.filter(v => v.type === "transport").reduce((sum, v) => sum + v.montant, 0);
-  
-  document.getElementById("cimentDisponible").textContent = formatFCFA(beneficeCimentTotal - versementsCiment);
-  document.getElementById("transportDisponible").textContent = formatFCFA(beneficeTransportTotal - versementsTransport);
+    const beneficeCimentTotal = cimentData.reduce((sum, r) => sum + (parseFloat(r.values[5]) || 0), 0);
+    const beneficeTransportTotal = transportData.reduce((sum, r) => sum + (parseFloat(r.values[5]) || 0), 0);
+    
+    const versementsCiment = versements.filter(v => v.type === "ciment").reduce((sum, v) => sum + v.montant, 0);
+    const versementsTransport = versements.filter(v => v.type === "transport").reduce((sum, v) => sum + v.montant, 0);
+    
+    document.getElementById("cimentDisponible").textContent = formatFCFA(beneficeCimentTotal - versementsCiment);
+    document.getElementById("transportDisponible").textContent = formatFCFA(beneficeTransportTotal - versementsTransport);
 }
 
-// RENDRE VERSMENTS PAR MOIS (AVEC TABLEAUX SUR LE SITE)
+// RENDRE VERSMENTS PAR MOIS
 function renderVersements(){
-  const container = document.getElementById("versementContainer");
-  container.innerHTML = "";
-  
-  // Grouper par mois ET type
-  const grouped = {};
-  versements.forEach(v => {
-    const d = new Date(v.date);
-    const monthKey = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
-    if(!grouped[monthKey]) grouped[monthKey] = { ciment: [], transport: [] };
-    grouped[monthKey][v.type].push(v);
-  });
-
-  for(const month in grouped){
-    const types = grouped[month];
-    const btn = document.createElement("button");
-    btn.className = "accordion-btn";
-    btn.textContent = `Versements du mois : ${month}`;
-    const content = document.createElement("div");
-    content.className = "accordion-content";
-
-    // Pour chaque type (Ciment/Transport)
-    for(const typeName of ["ciment", "transport"]){
-      const rows = types[typeName];
-      if(rows.length === 0) continue;
-      
-      let totalMontant = 0;
-      let html = `<h3>${typeName.toUpperCase()}</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Montant</th>
-                        <th>Description</th>
-                        <th>Modifier</th>
-                        <th>Supprimer</th>
-                      </tr>
-                    </thead>
-                    <tbody>`;
-      
-      rows.forEach(v => {
-        totalMontant += v.montant;
-        html += `<tr>
-          <td>${formatDate(v.date)}</td>
-          <td>${formatFCFA(v.montant)}</td>
-          <td>${v.description}</td>
-          <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
-          <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
-        </tr>`;
-      });
-      
-      html += `<tr class="total-row">
-        <td>Total ${typeName}</td>
-        <td>${formatFCFA(totalMontant)}</td>
-        <td colspan="3"></td>
-      </tr></tbody></table>`;
-      
-      content.innerHTML += html;
+    const container = document.getElementById("versementContainer");
+    container.innerHTML = "";
+    
+    if(versements.length === 0){
+        container.innerHTML = "<p style='text-align:center;'>Aucun versement enregistré</p>";
+        return;
     }
-
-    btn.onclick = () => {
-      content.style.display = content.style.display === "block" ? "none" : "block";
-    };
-    container.appendChild(btn);
-    container.appendChild(content);
-  }
-}
-
-// ENREGISTRER VERSMENT
-async function saveVersement(){
-  const date = document.getElementById("date").value;
-  const type = document.getElementById("type").value;
-  const montant = parseFloat(document.getElementById("montant").value);
-  const description = document.getElementById("description").value;
-
-  if(!date || !montant){ alert("Date et montant obligatoires"); return; }
-
-  const data = { date, type, montant, description };
-  let url = `${URL_GLOBAL}?type=versement`;
-  if(editRowIndex) url += `&edit=${editRowIndex}`;
-
-  try {
-    await fetch(url, { 
-      method: "POST", 
-      body: JSON.stringify(data),
-      headers: {'Content-Type': 'application/json'}
+    
+    const grouped = {};
+    versements.forEach(v => {
+        const d = new Date(v.date);
+        const monthKey = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
+        if(!grouped[monthKey]) grouped[monthKey] = { ciment: [], transport: [] };
+        grouped[monthKey][v.type].push(v);
     });
-    editRowIndex = null;
-    
-    // Reset formulaire
-    document.getElementById("date").value = "";
-    document.getElementById("montant").value = "";
-    document.getElementById("description").value = "";
-    
-    loadAllData(); // Recharge tout (tableaux + soldes)
-  } catch(e) {
-    console.error("Erreur sauvegarde:", e);
-  }
+
+    for(const month in grouped){
+        const types = grouped[month];
+        const btn = document.createElement("button");
+        btn.className = "accordion-btn";
+        btn.textContent = `Versements du mois : ${month}`;
+        const content = document.createElement("div");
+        content.className = "accordion-content";
+
+        for(const typeName of ["ciment", "transport"]){
+            const rows = types[typeName];
+            if(rows.length === 0) continue;
+            
+            let totalMontant = 0;
+            let html = `<h3>${typeName.toUpperCase()}</h3>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Montant</th>
+                              <th>Description</th>
+                              <th>Modifier</th>
+                              <th>Supprimer</th>
+                            </tr>
+                          </thead>
+                          <tbody>`;
+            
+            rows.forEach(v => {
+                totalMontant += v.montant;
+                html += `<tr>
+                  <td>${formatDate(v.date)}</td>
+                  <td>${formatFCFA(v.montant)}</td>
+                  <td>${v.description}</td>
+                  <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
+                  <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
+                </tr>`;
+            });
+            
+            html += `<tr class="total-row">
+              <td>Total ${typeName}</td>
+              <td>${formatFCFA(totalMontant)}</td>
+              <td colspan="3"></td>
+            </tr></tbody></table>`;
+            
+            content.innerHTML += html;
+        }
+
+        btn.onclick = () => {
+            content.style.display = content.style.display === "block" ? "none" : "block";
+        };
+        container.appendChild(btn);
+        container.appendChild(content);
+    }
 }
 
-// MODIFIER VERSMENT
-function editVersement(row){
-  const v = versements.find(x => x.row === row);
-  if(v){
-    document.getElementById("date").value = formatDate(v.date);
-    document.getElementById("type").value = v.type;
-    document.getElementById("montant").value = v.montant;
-    document.getElementById("description").value = v.description;
-    editRowIndex = row;
-  }
-}
-
-// SUPPRIMER VERSMENT
-async function deleteVersement(row){
-  if(!confirm("Supprimer ce versement ?")) return;
-  
-  try {
-    await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`);
-    loadAllData(); // Recharge tout (tableaux + soldes)
-  } catch(e) {
-    console.error("Erreur suppression:", e);
-  }
-}
-
-// PDF EXPORT (tous les tableaux)
-document.getElementById("downloadPdfBtn").onclick = async () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p", "pt", "a4");
-  const element = document.getElementById("versementContainer");
-  
-  const canvas = await html2canvas(element, { scale: 2 });
-  const img = canvas.toDataURL("image/png");
-  const pdfWidth = doc.internal.pageSize.getWidth();
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-  
-  doc.addImage(img, "PNG", 0, 0, pdfWidth, pdfHeight);
-  doc.save("versements_sodama.pdf");
+// ✅ FONCTION MODIFIER - GLOBALE
+window.editVersement = function(row){
+    const v = versements.find(x => x.row === row);
+    if(v){
+        document.getElementById("date").value = formatDate(v.date);
+        document.getElementById("type").value = v.type;
+        document.getElementById("montant").value = v.montant;
+        document.getElementById("description").value = v.description;
+        editRowIndex = row;
+        console.log("✏️ Édition versement:", row);
+    }
 };
 
-// Événements
-document.getElementById("saveBtn").onclick = saveVersement;
+// ✅ FONCTION SUPPRIMER - GLOBALE
+window.deleteVersement = async function(row){
+    if(!confirm("Supprimer ce versement ?")) return;
+    
+    try{
+        console.log("🗑️ Suppression versement:", row);
+        const res = await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`);
+        const responseText = await res.text();
+        console.log("✅ Réponse Apps Script:", responseText);
+        
+        if(responseText === "OK"){
+            console.log("✅ Versement supprimé !");
+            loadAllData();
+        } else {
+            alert("Erreur serveur: " + responseText);
+        }
+    } catch(e){
+        console.error("❌ Erreur suppression versement:", e);
+        alert("Erreur réseau: " + e.message);
+    }
+};
+
+// ENREGISTRER VERSMENT
+document.getElementById("saveBtn").onclick = async function(){
+    const date = document.getElementById("date").value;
+    const type = document.getElementById("type").value;
+    const montant = parseFloat(document.getElementById("montant").value);
+    const description = document.getElementById("description").value;
+
+    if(!date || !montant){ alert("Date et montant obligatoires"); return; }
+
+    const data = { date, type, montant, description };
+    let url = `${URL_GLOBAL}?type=versement`;
+    if(editRowIndex) url += `&edit=${editRowIndex}`;
+
+    try {
+        console.log("💾 Enregistrement versement:", editRowIndex ? "MODIF" : "NOUVELLE");
+        await fetch(url, { 
+            method: "POST", 
+            body: JSON.stringify(data),
+            headers: {'Content-Type': 'application/json'}
+        });
+        editRowIndex = null;
+        
+        document.getElementById("date").value = "";
+        document.getElementById("montant").value = "";
+        document.getElementById("description").value = "";
+        
+        loadAllData();
+        console.log("✅ Versement enregistré !");
+    } catch(e) {
+        console.error("❌ Erreur sauvegarde:", e);
+        alert("Erreur enregistrement: " + e.message);
+    }
+};
+
+// PDF EXPORT
+document.getElementById("downloadPdfBtn").onclick = async () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "pt", "a4");
+    const element = document.getElementById("versementContainer");
+    
+    const canvas = await html2canvas(element, { scale: 2 });
+    const img = canvas.toDataURL("image/png");
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    
+    doc.addImage(img, "PNG", 0, 0, pdfWidth, pdfHeight);
+    doc.save("versements_sodama.pdf");
+};
 
 // INITIALISATION
 loadAllData();

@@ -61,8 +61,7 @@ button.delete { background:#eb2f06; color:white; border:none; padding:5px 10px; 
 <script>
 document.getElementById("mobile-menu").onclick = () => document.getElementById("nav-links").classList.toggle("active");
 
-const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbzR-6D78_LcroRmtOjF5kNqidZ9HTAddzylWHc_eq7pfEKOESFGextkWQhr-Uxx6B1nGw/exec"; // 🔹 Remplace par ton WebApp URL
-
+const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbzhJNpg-lQt0pPz2RdKPU86_LWuvo1ubDJJyWWhQ_CJUcennw5SEhlIWntC3GBi_655hQ/exec";
 let transportData = [];
 let editRowIndex = null;
 
@@ -72,8 +71,11 @@ function getMonthKey(dateStr){ const d = new Date(dateStr); return `${d.getMonth
 // Charger données
 async function loadTransportData(){
     try{
+        console.log("📥 Chargement Transport...");
         const res = await fetch(`${GLOBAL_URL}?type=transport`);
         const rows = await res.json();
+        console.log("✅ Données reçues:", rows.length, "lignes");
+        
         transportData = rows.map(r=>({
             sheetRow: r.row,
             date: r.values[0],
@@ -84,7 +86,10 @@ async function loadTransportData(){
             benefice: parseFloat(r.values[5]) || ((parseFloat(r.values[1]||0)*parseFloat(r.values[2]||0)) - parseFloat(r.values[3]||0))
         }));
         renderTable();
-    } catch(e){ console.error("Erreur fetch Transport:", e); }
+    } catch(e){ 
+        console.error("❌ Erreur fetch Transport:", e); 
+        document.getElementById("transportContainer").innerHTML = "<p style='text-align:center;color:red;'>Erreur chargement données</p>";
+    }
 }
 
 // Rendu tableau
@@ -127,20 +132,46 @@ function renderTable(){
         tableHTML+="</tbody></table>";
         content.innerHTML = tableHTML;
         btn.onclick = ()=>{ content.style.display=content.style.display==="block"?"none":"block"; };
-        container.appendChild(btn); container.appendChild(content);
+        container.appendChild(btn); 
+        container.appendChild(content);
     }
 }
 
-// Préparer modification
-function prepareEdit(sheetRow){
+// ✅ FONCTION MODIFIER - GLOBALE (window.prepareEdit)
+window.prepareEdit = function(sheetRow){
     const item = transportData.find(x=>x.sheetRow===sheetRow);
-    document.getElementById("date").value = item.date.split('T')[0];
-    document.getElementById("tonnage").value = item.tonnage;
-    document.getElementById("prixUnitaire").value = item.prixUnitaire;
-    document.getElementById("depense").value = item.depense;
-    document.getElementById("description").value = item.description;
-    editRowIndex = sheetRow;
-}
+    if(item){
+        document.getElementById("date").value = item.date.split('T')[0];
+        document.getElementById("tonnage").value = item.tonnage;
+        document.getElementById("prixUnitaire").value = item.prixUnitaire;
+        document.getElementById("depense").value = item.depense;
+        document.getElementById("description").value = item.description;
+        editRowIndex = sheetRow;
+        console.log("✏️ Édition ligne Transport:", sheetRow);
+    }
+};
+
+// ✅ FONCTION SUPPRIMER - GLOBALE (window.deleteRow)
+window.deleteRow = async function(sheetRow){
+    if(!confirm("Supprimer cette ligne ?")) return;
+    
+    try{
+        console.log("🗑️ Suppression Transport ligne:", sheetRow);
+        const res = await fetch(`${GLOBAL_URL}?type=transport&action=delete&index=${sheetRow}`);
+        const responseText = await res.text();
+        console.log("✅ Réponse Apps Script:", responseText);
+        
+        if(responseText === "OK"){
+            console.log("✅ Ligne Transport supprimée !");
+            loadTransportData(); // Recharge tableau
+        } else {
+            alert("Erreur serveur: " + responseText);
+        }
+    } catch(e){
+        console.error("❌ Erreur suppression Transport:", e);
+        alert("Erreur réseau: " + e.message);
+    }
+};
 
 // Ajouter / modifier
 document.getElementById("transportForm").addEventListener("submit", async function(e){
@@ -154,25 +185,29 @@ document.getElementById("transportForm").addEventListener("submit", async functi
     const data=[date, tonnage, prixUnitaire, depense, description, benefice];
 
     try{
+        console.log("💾 Enregistrement Transport:", editRowIndex ? "MODIF" : "NOUVELLE");
         if(editRowIndex){
-            await fetch(`${GLOBAL_URL}?type=transport&edit=${editRowIndex}`,{ method:"POST", body:JSON.stringify(data) });
+            await fetch(`${GLOBAL_URL}?type=transport&edit=${editRowIndex}`,{ 
+                method:"POST", 
+                body:JSON.stringify(data),
+                headers: {'Content-Type': 'application/json'}
+            });
             editRowIndex=null;
         } else {
-            await fetch(`${GLOBAL_URL}?type=transport`,{ method:"POST", body:JSON.stringify(data) });
+            await fetch(`${GLOBAL_URL}?type=transport`,{ 
+                method:"POST", 
+                body:JSON.stringify(data),
+                headers: {'Content-Type': 'application/json'}
+            });
         }
         this.reset();
         loadTransportData();
-    } catch(e){ console.error("Erreur POST Transport:", e); }
+        console.log("✅ Enregistré Transport !");
+    } catch(e){ 
+        console.error("❌ Erreur POST Transport:", e); 
+        alert("Erreur enregistrement: " + e.message);
+    }
 });
-
-// Supprimer ligne
-async function deleteRow(sheetRow){
-    if(!confirm("Supprimer cette ligne ?")) return;
-    try{
-        await fetch(`${GLOBAL_URL}?type=transport&action=delete&index=${sheetRow}`);
-        loadTransportData();
-    } catch(e){ console.error("Erreur DELETE Transport:", e); }
-}
 
 // Initial
 loadTransportData();
