@@ -3,41 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SODAMA - Rapport Mensuel</title>
-
+<title>SODAMA - Rapport</title>
 <style>
-body { font-family: Arial; background:#fff; color:#0a3d62; margin:0; }
-.navbar { display:flex; justify-content:space-between; padding:10px 20px; background:#0a3d62; color:white; }
+body { font-family: Arial, sans-serif; margin:0; background:#ffffff; color:#0a3d62; }
+.navbar { display:flex; justify-content:space-between; align-items:center; background:#0a3d62; padding:10px 20px; color:white; }
 .navbar .logo { font-size:1.5rem; font-weight:bold; }
-.navbar ul { display:flex; gap:15px; list-style:none; }
-.navbar ul li a { color:white; padding:8px 15px; border-radius:5px; text-decoration:none; }
+.navbar ul { display:flex; list-style:none; gap:15px; }
+.navbar ul li a { text-decoration:none; color:white; padding:8px 15px; border-radius:5px; font-weight:bold; }
 .navbar ul li a:hover { background:white; color:#0a3d62; }
 .menu-toggle { display:none; flex-direction:column; cursor:pointer; }
-.menu-toggle span { width:25px; height:3px; background:white; margin:3px 0; }
-
+.menu-toggle span { background:white; width:25px; height:3px; margin:4px 0; }
 @media(max-width:768px){
-  .menu-toggle { display:flex; }
-  .navbar ul { display:none; flex-direction:column; background:#0a3d62; position:absolute; top:60px; right:0; width:200px; padding:10px; }
-  .navbar ul.active { display:flex; }
+  .menu-toggle{display:flex;}
+  .navbar ul{position:absolute; top:60px; right:0; background:#0a3d62; width:200px; flex-direction:column; padding:10px; display:none;}
+  .navbar ul.active{display:flex;}
 }
-
-.accordion-btn { width:95%; margin:15px auto; padding:12px; font-size:1.2rem; border:none; border-radius:8px; cursor:pointer; background:#0a3d62; color:white; text-align:left; }
-.accordion-content { width:95%; display:none; margin:10px auto; padding:15px; background:white; border-radius:8px; border:2px solid #0a3d62; }
-
-table { width:100%; border-collapse:collapse; margin-top:15px; }
-th, td { border:1px solid #0a3d62; padding:10px; text-align:center; }
-.total-row { background:#0a3d62; color:white; font-weight:bold; }
-
-.flex-container { display:flex; justify-content:space-between; gap:20px; }
-.block { width:48%; }
-@media(max-width:900px){ .flex-container{ flex-direction:column; } .block{ width:100%; } }
-
-.total-global { background:#0a3d62; color:white; padding:15px; margin:30px auto; width:90%; text-align:center; border-radius:10px; font-size:1.3rem; }
-
-#downloadPdfBtn { margin:20px auto; display:block; background:#0a3d62; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; }
+h1 { text-align:center; margin:20px 0; }
+h2 { width:95%; margin:20px auto 10px; }
+table{width:95%; margin:10px auto 20px; border-collapse:collapse;}
+th,td{border:1px solid #0a3d62; padding:8px; text-align:center;}
+.summary-box{width:95%; margin:10px auto; padding:10px; border:1px solid #0a3d62; border-radius:5px; background:#f5f9ff;}
 </style>
 </head>
-
 <body>
 
 <nav class="navbar">
@@ -52,175 +39,226 @@ th, td { border:1px solid #0a3d62; padding:10px; text-align:center; }
   </ul>
 </nav>
 
-<h1 style="text-align:center; margin-top:20px;">Rapport Mensuel</h1>
+<h1>Rapport Mensuel</h1>
 
-<button id="downloadPdfBtn">Télécharger le PDF</button>
-
-<div id="reportContainer"></div>
-
-<div class="total-global">
-TOTAL GLOBAL BÉNÉFICE : <span id="global_benef">0</span> FCFA
+<div class="summary-box" id="globalSummary">
+  Chargement des totaux...
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<h2>Ciment - Totaux par mois</h2>
+<div id="cimentReportContainer"></div>
+
+<h2>Transport - Totaux par mois</h2>
+<div id="transportReportContainer"></div>
 
 <script>
-const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbyBgSrj0mDA6aWWLuTaRegVpDEha3CUO2GDgilhwfCcSJxuADoFaJTSbn6UHWcLFgmO/exec"
-document.getElementById("mobile-menu").onclick = () =>
+document.getElementById("mobile-menu").onclick = () => {
   document.getElementById("nav-links").classList.toggle("active");
-
-let cimentData = [], transportData = [];
-
-// ------------------------------
-// CHARGEMENT DES DONNÉES
-// ------------------------------
-async function loadData(){
-  cimentData = await (await fetch(`${URL_GLOBAL}?type=ciment`)).json();
-  transportData = await (await fetch(`${URL_GLOBAL}?type=transport`)).json();
-  renderReport();
-}
-
-// ------------------------------
-// UTILITAIRES
-// ------------------------------
-function getMonthName(m){
-  return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet",
-          "Août","Septembre","Octobre","Novembre","Décembre"][m];
-}
-
-// Grouper par mois
-function groupByMonth(data){
-  let result = {};
-  data.forEach(item=>{
-    let row = item.values;
-    if(row[0]){
-      // garde la date telle quelle, pas de conversion
-      let d = row[0].split('T')[0];
-      let dt = new Date(d);
-      let key = `${getMonthName(dt.getMonth())} ${dt.getFullYear()}`;
-      if(!result[key]) result[key] = [];
-      result[key].push(row);
-    }
-  });
-  return result;
-}
-
-// Trier les mois chronologiquement
-function sortMonths(months){
-  return months.sort((a,b)=>{
-    const [m1,y1] = a.split(' ');
-    const [m2,y2] = b.split(' ');
-    const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet",
-                        "Août","Septembre","Octobre","Novembre","Décembre"];
-    const d1 = new Date(Number(y1), monthNames.indexOf(m1));
-    const d2 = new Date(Number(y2), monthNames.indexOf(m2));
-    return d1 - d2;
-  });
-}
-
-// ------------------------------
-// RENDU DU RAPPORT
-// ------------------------------
-function renderReport(){
-  const container = document.getElementById("reportContainer");
-  container.innerHTML = "";
-
-  const cimentByMonth = groupByMonth(cimentData);
-  const transportByMonth = groupByMonth(transportData);
-
-  const allMonths = sortMonths(Array.from(
-      new Set([...Object.keys(cimentByMonth), ...Object.keys(transportByMonth)])
-  ));
-
-  let globalBenef = 0;
-
-  allMonths.forEach(month=>{
-    const cimentRows = cimentByMonth[month] || [];
-    const transportRows = transportByMonth[month] || [];
-
-    if(cimentRows.length === 0 && transportRows.length === 0) return;
-
-    let btn = document.createElement("button");
-    btn.className = "accordion-btn";
-    btn.textContent = `Rapport du mois ${month}`;
-
-    let content = document.createElement("div");
-    content.className = "accordion-content";
-
-    let tc = { tonnage:0, depense:0, benefice:0 };
-    cimentRows.forEach(x=>{
-      tc.tonnage += Number(x[1]);
-      tc.depense += Number(x[4]);
-      tc.benefice += Number(x[5]);
-      globalBenef += Number(x[5]);
-    });
-
-    let tt = { tonnage:0, depense:0, benefice:0 };
-    transportRows.forEach(x=>{
-      tt.tonnage += Number(x[1]);
-      tt.depense += Number(x[3]);
-      tt.benefice += Number(x[5]);
-      globalBenef += Number(x[5]);
-    });
-
-    content.innerHTML = `
-    <div class="flex-container">
-
-      <div class="block">
-      <h2>TRANSPORT</h2>
-      <table>
-        <tr><th>Date</th><th>Tonnage</th><th>Dépense</th><th>Bénéfice</th></tr>
-        ${transportRows.map(x=>`
-          <tr>
-            <td>${x[0].split('T')[0]}</td><td>${x[1]}</td><td>${x[3]}</td><td>${x[5]}</td>
-          </tr>
-        `).join("")}
-        <tr class="total-row"><td>TOTAL</td><td>${tt.tonnage}</td><td>${tt.depense}</td><td>${tt.benefice}</td></tr>
-      </table>
-      </div>
-
-      <div class="block">
-      <h2>CIMENT</h2>
-      <table>
-        <tr><th>Date</th><th>Tonnage</th><th>Dépense</th><th>Bénéfice</th></tr>
-        ${cimentRows.map(x=>`
-          <tr>
-            <td>${x[0].split('T')[0]}</td><td>${x[1]}</td><td>${x[4]}</td><td>${x[5]}</td>
-          </tr>
-        `).join("")}
-        <tr class="total-row"><td>TOTAL</td><td>${tc.tonnage}</td><td>${tc.depense}</td><td>${tc.benefice}</td></tr>
-      </table>
-      </div>
-
-    </div>
-    `;
-
-    btn.onclick = ()=> content.style.display = content.style.display==="block" ? "none":"block";
-
-    container.appendChild(btn);
-    container.appendChild(content);
-  });
-
-  document.getElementById("global_benef").textContent = globalBenef;
-}
-
-// ------------------------------
-// PDF
-// ------------------------------
-document.getElementById("downloadPdfBtn").onclick = async () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p","pt","a4");
-  const element = document.getElementById("reportContainer");
-  const canvas = await html2canvas(element, { scale:2 });
-  const img = canvas.toDataURL("image/png");
-  const pdfWidth = doc.internal.pageSize.getWidth();
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-  doc.addImage(img, "PNG", 0, 0, pdfWidth, pdfHeight);
-  doc.save("rapport_sodama.pdf");
 };
 
+// même URL WebApp que les autres pages
+const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbzR-6D78_LcroRmtOjF5kNqidZ9HTAddzylWHc_eq7pfEKOESFGextkWQhr-Uxx6B1nGw/exec";
+
+function formatFCFA(val){ return Number(val).toLocaleString('fr-FR') + " FCFA"; }
+function getMonthKey(dateStr){
+  const d = new Date(dateStr);
+  const mois = (d.getMonth()+1).toString().padStart(2,"0");
+  const annee = d.getFullYear();
+  return mois + "-" + annee;
+}
+
+// ----- CHARGEMENT DES DONNÉES -----
+async function loadData(){
+  try{
+    const [cimentRes, transportRes] = await Promise.all([
+      fetch(GLOBAL_URL + "?type=ciment"),
+      fetch(GLOBAL_URL + "?type=transport")
+    ]);
+
+    const cimentRows = await cimentRes.json();
+    const transportRows = await transportRes.json();
+
+    const cimentData = cimentRows.map(r=>({
+      date: r.values[0],
+      tonnage: parseFloat(r.values[1]) || 0,
+      prixAchat: parseFloat(r.values[2]) || 0,
+      prixVente: parseFloat(r.values[3]) || 0,
+      depense: parseFloat(r.values[4]) || 0,
+      benefice: parseFloat(r.values[5]) || ((parseFloat(r.values[3]||0)*parseFloat(r.values[1]||0)) - (parseFloat(r.values[2]||0)*parseFloat(r.values[1]||0)) - parseFloat(r.values[4]||0))
+    }));
+
+    const transportData = transportRows.map(r=>({
+      date: r.values[0],
+      tonnage: parseFloat(r.values[1]) || 0,
+      prixUnitaire: parseFloat(r.values[2]) || 0,
+      depense: parseFloat(r.values[3]) || 0,
+      benefice: parseFloat(r.values[5]) || ((parseFloat(r.values[1]||0)*parseFloat(r.values[2]||0)) - parseFloat(r.values[3]||0))
+    }));
+
+    buildCimentReport(cimentData);
+    buildTransportReport(transportData);
+    buildGlobalSummary(cimentData, transportData);
+
+  }catch(e){
+    console.error("Erreur chargement rapport:", e);
+    document.getElementById("globalSummary").textContent = "Erreur de chargement du rapport.";
+  }
+}
+
+// ----- AGRÉGATION CIMENT -----
+function buildCimentReport(data){
+  const grouped = {};
+
+  data.forEach(item=>{
+    const key = getMonthKey(item.date);
+    if(!grouped[key]){
+      grouped[key] = {
+        tonnage:0,
+        achatTotal:0,
+        venteTotal:0,
+        depenseTotal:0,
+        beneficeTotal:0
+      };
+    }
+    grouped[key].tonnage += item.tonnage;
+    grouped[key].achatTotal += item.prixAchat * item.tonnage;
+    grouped[key].venteTotal += item.prixVente * item.tonnage;
+    grouped[key].depenseTotal += item.depense;
+    grouped[key].beneficeTotal += item.benefice;
+  });
+
+  const container = document.getElementById("cimentReportContainer");
+  container.innerHTML = "";
+
+  const months = Object.keys(grouped).sort((a,b)=>{
+    const [ma,ya] = a.split("-").map(Number);
+    const [mb,yb] = b.split("-").map(Number);
+    return new Date(ya,ma-1,1) - new Date(yb,mb-1,1);
+  });
+
+  if(months.length === 0){
+    container.textContent = "Aucune donnée ciment.";
+    return;
+  }
+
+  let html = `<table>
+  <thead>
+    <tr>
+      <th>Mois</th>
+      <th>Tonnage total</th>
+      <th>Total achats</th>
+      <th>Total ventes</th>
+      <th>Dépenses</th>
+      <th>Bénéfice</th>
+    </tr>
+  </thead>
+  <tbody>`;
+
+  months.forEach(month=>{
+    const m = grouped[month];
+    html += `<tr>
+      <td>${month}</td>
+      <td>${m.tonnage}</td>
+      <td>${formatFCFA(m.achatTotal)}</td>
+      <td>${formatFCFA(m.venteTotal)}</td>
+      <td>${formatFCFA(m.depenseTotal)}</td>
+      <td>${formatFCFA(m.beneficeTotal)}</td>
+    </tr>`;
+  });
+
+  html += "</tbody></table>";
+  container.innerHTML = html;
+}
+
+// ----- AGRÉGATION TRANSPORT -----
+function buildTransportReport(data){
+  const grouped = {};
+
+  data.forEach(item=>{
+    const key = getMonthKey(item.date);
+    if(!grouped[key]){
+      grouped[key] = {
+        tonnage:0,
+        montantTotal:0,
+        depenseTotal:0,
+        beneficeTotal:0
+      };
+    }
+    grouped[key].tonnage += item.tonnage;
+    grouped[key].montantTotal += item.prixUnitaire * item.tonnage;
+    grouped[key].depenseTotal += item.depense;
+    grouped[key].beneficeTotal += item.benefice;
+  });
+
+  const container = document.getElementById("transportReportContainer");
+  container.innerHTML = "";
+
+  const months = Object.keys(grouped).sort((a,b)=>{
+    const [ma,ya] = a.split("-").map(Number);
+    const [mb,yb] = b.split("-").map(Number);
+    return new Date(ya,ma-1,1) - new Date(yb,mb-1,1);
+  });
+
+  if(months.length === 0){
+    container.textContent = "Aucune donnée transport.";
+    return;
+  }
+
+  let html = `<table>
+  <thead>
+    <tr>
+      <th>Mois</th>
+      <th>Tonnage total</th>
+      <th>Montant transport</th>
+      <th>Dépenses</th>
+      <th>Bénéfice</th>
+    </tr>
+  </thead>
+  <tbody>`;
+
+  months.forEach(month=>{
+    const m = grouped[month];
+    html += `<tr>
+      <td>${month}</td>
+      <td>${m.tonnage}</td>
+      <td>${formatFCFA(m.montantTotal)}</td>
+      <td>${formatFCFA(m.depenseTotal)}</td>
+      <td>${formatFCFA(m.beneficeTotal)}</td>
+    </tr>`;
+  });
+
+  html += "</tbody></table>";
+  container.innerHTML = html;
+}
+
+// ----- RÉSUMÉ GLOBAL -----
+function buildGlobalSummary(cimentData, transportData){
+  let benefCiment = 0, benefTransport = 0;
+  let depCiment = 0, depTransport = 0;
+
+  cimentData.forEach(i=>{
+    benefCiment += i.benefice;
+    depCiment += i.depense;
+  });
+  transportData.forEach(i=>{
+    benefTransport += i.benefice;
+    depTransport += i.depense;
+  });
+
+  const global = document.getElementById("globalSummary");
+  global.innerHTML = `
+    <strong>Résumé global :</strong><br>
+    Bénéfice Ciment : ${formatFCFA(benefCiment)}<br>
+    Bénéfice Transport : ${formatFCFA(benefTransport)}<br>
+    Bénéfice total : ${formatFCFA(benefCiment + benefTransport)}<br>
+    Dépenses Ciment : ${formatFCFA(depCiment)}<br>
+    Dépenses Transport : ${formatFCFA(depTransport)}
+  `;
+}
+
+// lancement
 loadData();
 </script>
+
 </body>
 </html>
