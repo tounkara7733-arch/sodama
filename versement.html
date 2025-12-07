@@ -20,17 +20,13 @@ body { font-family: Arial; margin:0; background:#f4f4f4; color:#0a3d62;}
 }
 .container { width:95%; max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:10px; }
 h2 { text-align:center; margin-bottom:20px; }
-.balance-section { margin-bottom:30px; padding:15px; background:#e8f4f8; border-radius:8px; border-left:5px solid #0a3d62; }
-.balance-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:10px; }
-.balance-item { text-align:center; padding:10px; background:white; border-radius:5px; }
-.balance-item strong { display:block; font-size:1.2em; color:#0a3d62; }
 input, select, textarea, button { width:100%; padding:10px; margin:8px 0; border-radius:5px; border:1px solid #aaa; }
 button { background:#0a3d62; color:white; border:none; cursor:pointer; font-weight:bold; }
 button:hover { background:#074267; }
 table { width:100%; border-collapse:collapse; margin-top:15px; }
 th, td { border:1px solid #aaa; padding:10px; text-align:center; }
 th { background:#0a3d62; color:white; }
-.action-btn { padding:6px 10px; color:white; border:none; cursor:pointer; border-radius:4px; margin:0 2px; }
+.action-btn { padding:6px 10px; color:white; border:none; cursor:pointer; border-radius:4px; }
 .edit { background:orange; }
 .delete { background:red; }
 .accordion-btn { width:100%; background:#0a3d62; color:white; padding:12px; font-size:1.1rem; border:none; border-radius:8px; cursor:pointer; margin-top:15px; text-align:left; }
@@ -55,21 +51,6 @@ th { background:#0a3d62; color:white; }
 <div class="container">
 <h2>Gestion des Versements</h2>
 
-<!-- SOLDES EN TEMPS RÉEL -->
-<div class="balance-section">
-  <h3>🔄 Soldes Disponibles (mise à jour automatique)</h3>
-  <div class="balance-grid">
-    <div class="balance-item">
-      <span>Ciment</span>
-      <strong id="cimentDisponible">0 FCFA</strong>
-    </div>
-    <div class="balance-item">
-      <span>Transport</span>
-      <strong id="transportDisponible">0 FCFA</strong>
-    </div>
-  </div>
-</div>
-
 <label>Date :</label>
 <input type="date" id="date">
 
@@ -80,7 +61,7 @@ th { background:#0a3d62; color:white; }
 </select>
 
 <label>Montant :</label>
-<input type="number" id="montant" placeholder="Entrez le montant..." step="0.01">
+<input type="number" id="montant" placeholder="Entrez le montant...">
 
 <label>Description :</label>
 <textarea id="description" rows="3"></textarea>
@@ -95,172 +76,80 @@ th { background:#0a3d62; color:white; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
-const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbzhJNpg-lQt0pPz2RdKPU86_LWuvo1ubDJJyWWhQ_CJUcennw5SEhlIWntC3GBi_655hQ/exec";
+const URL_GLOBAL = "https://script.google.com/macros/s/AKfycbz6cngbQ44xOjvLyTd8-fBxCNgra12xgeF1Je6w-d0H6nKb-4DUhPIdyi4u11sfEEHCwg/exec";
 document.getElementById("mobile-menu").onclick = () => document.getElementById("nav-links").classList.toggle("active");
 
-let versements = [], cimentData = [], transportData = [];
+let versements = [];
 let editRowIndex = null;
 
 function getMonthName(m){ return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"][m]; }
 function formatDate(d){ return new Date(d).toISOString().split('T')[0]; }
-function formatFCFA(val){ return Number(val).toLocaleString('fr-FR') + " FCFA"; }
 
-// CHARGER TOUTES LES DONNÉES
-async function loadAllData(){
-    try {
-        console.log("📥 Chargement Versements...");
-        const [versRes, cimentRes, transportRes] = await Promise.all([
-            fetch(`${URL_GLOBAL}?type=versement`),
-            fetch(`${URL_GLOBAL}?type=ciment`),
-            fetch(`${URL_GLOBAL}?type=transport`)
-        ]);
-        
-        versements = await versRes.json();
-        cimentData = await cimentRes.json();
-        transportData = await transportRes.json();
-        
-        console.log("✅ Versements:", versements.length, "lignes");
-        console.log("✅ Ciment:", cimentData.length, "lignes");
-        console.log("✅ Transport:", transportData.length, "lignes");
-        
-        // Convertir versements en format compatible
-        versements = versements.map(r => ({
-            row: r.row,
-            date: r.values[0],
-            type: r.values[1],
-            montant: parseFloat(r.values[2]) || 0,
-            description: r.values[3] || ""
-        }));
-        
-        updateBalances();
-        renderVersements();
-    } catch(e) {
-        console.error("❌ Erreur chargement:", e);
-        document.getElementById("versementContainer").innerHTML = "<p style='text-align:center;color:red;'>Erreur chargement données</p>";
-    }
+async function loadVersements(){
+    const res = await fetch(`${URL_GLOBAL}?type=versement`);
+    const rows = await res.json();
+    versements = rows.map(r=>({
+        row: r.row,
+        date: r.values[0],
+        type: r.values[1],
+        montant: parseFloat(r.values[2]),
+        description: r.values[3]
+    }));
+    renderVersements();
 }
 
-// SOLDES DISPONIBLES
-function updateBalances(){
-    const beneficeCimentTotal = cimentData.reduce((sum, r) => sum + (parseFloat(r.values[5]) || 0), 0);
-    const beneficeTransportTotal = transportData.reduce((sum, r) => sum + (parseFloat(r.values[5]) || 0), 0);
-    
-    const versementsCiment = versements.filter(v => v.type === "ciment").reduce((sum, v) => sum + v.montant, 0);
-    const versementsTransport = versements.filter(v => v.type === "transport").reduce((sum, v) => sum + v.montant, 0);
-    
-    document.getElementById("cimentDisponible").textContent = formatFCFA(beneficeCimentTotal - versementsCiment);
-    document.getElementById("transportDisponible").textContent = formatFCFA(beneficeTransportTotal - versementsTransport);
+function groupByMonthAndType(data){
+    let result = {};
+    data.forEach(v=>{
+        const d = new Date(v.date);
+        const monthKey = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
+        if(!result[monthKey]) result[monthKey] = { ciment: [], transport: [] };
+        result[monthKey][v.type].push(v);
+    });
+    return result;
 }
 
-// RENDRE VERSMENTS PAR MOIS
 function renderVersements(){
     const container = document.getElementById("versementContainer");
     container.innerHTML = "";
-    
-    if(versements.length === 0){
-        container.innerHTML = "<p style='text-align:center;'>Aucun versement enregistré</p>";
-        return;
-    }
-    
-    const grouped = {};
-    versements.forEach(v => {
-        const d = new Date(v.date);
-        const monthKey = `${getMonthName(d.getMonth())} ${d.getFullYear()}`;
-        if(!grouped[monthKey]) grouped[monthKey] = { ciment: [], transport: [] };
-        grouped[monthKey][v.type].push(v);
-    });
+    const grouped = groupByMonthAndType(versements);
 
     for(const month in grouped){
         const types = grouped[month];
         const btn = document.createElement("button");
-        btn.className = "accordion-btn";
-        btn.textContent = `Versements du mois : ${month}`;
+        btn.className="accordion-btn";
+        btn.textContent=`Versements du mois : ${month}`;
         const content = document.createElement("div");
-        content.className = "accordion-content";
+        content.className="accordion-content";
 
-        for(const typeName of ["ciment", "transport"]){
+        for(const typeName of ["ciment","transport"]){
             const rows = types[typeName];
             if(rows.length === 0) continue;
-            
             let totalMontant = 0;
-            let html = `<h3>${typeName.toUpperCase()}</h3>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Montant</th>
-                              <th>Description</th>
-                              <th>Modifier</th>
-                              <th>Supprimer</th>
-                            </tr>
-                          </thead>
-                          <tbody>`;
-            
-            rows.forEach(v => {
+            let html = `<h3>${typeName.toUpperCase()}</h3><table>
+                <thead><tr><th>Date</th><th>Montant</th><th>Description</th><th>Modifier</th><th>Supprimer</th></tr></thead><tbody>`;
+            rows.forEach(v=>{
                 totalMontant += v.montant;
-                html += `<tr>
-                  <td>${formatDate(v.date)}</td>
-                  <td>${formatFCFA(v.montant)}</td>
-                  <td>${v.description}</td>
-                  <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
-                  <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
+                html+=`<tr>
+                    <td>${formatDate(v.date)}</td>
+                    <td>${v.montant.toLocaleString('fr-FR')} FCFA</td>
+                    <td>${v.description}</td>
+                    <td><button class="action-btn edit" onclick="editVersement(${v.row})">Modifier</button></td>
+                    <td><button class="action-btn delete" onclick="deleteVersement(${v.row})">Supprimer</button></td>
                 </tr>`;
             });
-            
-            html += `<tr class="total-row">
-              <td>Total ${typeName}</td>
-              <td>${formatFCFA(totalMontant)}</td>
-              <td colspan="3"></td>
-            </tr></tbody></table>`;
-            
+            html+=`<tr class="total-row"><td>Total ${typeName}</td><td>${totalMontant.toLocaleString('fr-FR')} FCFA</td><td colspan="3"></td></tr>`;
+            html+="</tbody></table>";
             content.innerHTML += html;
         }
 
-        btn.onclick = () => {
-            content.style.display = content.style.display === "block" ? "none" : "block";
-        };
+        btn.onclick = ()=>{ content.style.display = content.style.display==="block"?"none":"block"; };
         container.appendChild(btn);
         container.appendChild(content);
     }
 }
 
-// ✅ FONCTION MODIFIER - GLOBALE
-window.editVersement = function(row){
-    const v = versements.find(x => x.row === row);
-    if(v){
-        document.getElementById("date").value = formatDate(v.date);
-        document.getElementById("type").value = v.type;
-        document.getElementById("montant").value = v.montant;
-        document.getElementById("description").value = v.description;
-        editRowIndex = row;
-        console.log("✏️ Édition versement:", row);
-    }
-};
-
-// ✅ FONCTION SUPPRIMER - GLOBALE
-window.deleteVersement = async function(row){
-    if(!confirm("Supprimer ce versement ?")) return;
-    
-    try{
-        console.log("🗑️ Suppression versement:", row);
-        const res = await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`);
-        const responseText = await res.text();
-        console.log("✅ Réponse Apps Script:", responseText);
-        
-        if(responseText === "OK"){
-            console.log("✅ Versement supprimé !");
-            loadAllData();
-        } else {
-            alert("Erreur serveur: " + responseText);
-        }
-    } catch(e){
-        console.error("❌ Erreur suppression versement:", e);
-        alert("Erreur réseau: " + e.message);
-    }
-};
-
-// ENREGISTRER VERSMENT
-document.getElementById("saveBtn").onclick = async function(){
+async function saveVersement(){
     const date = document.getElementById("date").value;
     const type = document.getElementById("type").value;
     const montant = parseFloat(document.getElementById("montant").value);
@@ -272,44 +161,46 @@ document.getElementById("saveBtn").onclick = async function(){
     let url = `${URL_GLOBAL}?type=versement`;
     if(editRowIndex) url += `&edit=${editRowIndex}`;
 
-    try {
-        console.log("💾 Enregistrement versement:", editRowIndex ? "MODIF" : "NOUVELLE");
-        await fetch(url, { 
-            method: "POST", 
-            body: JSON.stringify(data),
-            headers: {'Content-Type': 'application/json'}
-        });
-        editRowIndex = null;
-        
-        document.getElementById("date").value = "";
-        document.getElementById("montant").value = "";
-        document.getElementById("description").value = "";
-        
-        loadAllData();
-        console.log("✅ Versement enregistré !");
-    } catch(e) {
-        console.error("❌ Erreur sauvegarde:", e);
-        alert("Erreur enregistrement: " + e.message);
-    }
-};
+    await fetch(url,{ method:"POST", body:JSON.stringify(data) });
+    editRowIndex = null;
 
-// PDF EXPORT
-document.getElementById("downloadPdfBtn").onclick = async () => {
+    document.getElementById("date").value="";
+    document.getElementById("montant").value="";
+    document.getElementById("description").value="";
+
+    loadVersements();
+}
+
+function editVersement(row){
+    const v = versements.find(x=>x.row===row);
+    document.getElementById("date").value = v.date;
+    document.getElementById("type").value = v.type;
+    document.getElementById("montant").value = v.montant;
+    document.getElementById("description").value = v.description;
+    editRowIndex = row;
+}
+
+async function deleteVersement(row){
+    if(!confirm("Supprimer ce versement ?")) return;
+    await fetch(`${URL_GLOBAL}?type=versement&action=delete&index=${row}`);
+    loadVersements();
+}
+
+// PDF
+document.getElementById("downloadPdfBtn").onclick = async ()=>{
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("p", "pt", "a4");
+    const doc = new jsPDF("p","pt","a4");
     const element = document.getElementById("versementContainer");
-    
-    const canvas = await html2canvas(element, { scale: 2 });
+    const canvas = await html2canvas(element, { scale:2 });
     const img = canvas.toDataURL("image/png");
     const pdfWidth = doc.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
-    doc.addImage(img, "PNG", 0, 0, pdfWidth, pdfHeight);
+    const pdfHeight = (canvas.height * pdfWidth)/canvas.width;
+    doc.addImage(img,"PNG",0,0,pdfWidth,pdfHeight);
     doc.save("versements_sodama.pdf");
 };
 
-// INITIALISATION
-loadAllData();
+document.getElementById("saveBtn").onclick = saveVersement;
+loadVersements();
 </script>
 </body>
 </html>

@@ -1,79 +1,205 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SODAMA - Ciment</title>
-<style>
-body { font-family: Arial, sans-serif; margin:0; background:#ffffff; color:#0a3d62; }
-.navbar { display:flex; justify-content:space-between; align-items:center; background:#0a3d62; padding:10px 20px; color:white; }
-.navbar .logo { font-size:1.5rem; font-weight:bold; }
-.navbar ul { display:flex; list-style:none; }
-.navbar ul li a { text-decoration:none; color:white; padding:8px 15px; border-radius:5px; font-weight:bold; }
-.navbar ul li a:hover { background:white; color:#0a3d62; }
-.menu-toggle { display:none; flex-direction:column; cursor:pointer; }
-.menu-toggle span { background:white; width:25px; height:3px; margin:4px 0; }
-@media(max-width:768px){ .menu-toggle{display:flex;} .navbar ul{position:absolute; top:60px; right:0; background:#0a3d62; width:200px; flex-direction:column; padding:10px; display:none;} .navbar ul.active{display:flex;} }
-h1{text-align:center; margin:20px 0;}
-form{max-width:800px; margin:auto; display:flex; flex-wrap:wrap; gap:10px;}
-form input{width:48%; padding:10px; border:1px solid #0a3d62; border-radius:5px;}
-form button{width:100%; padding:10px; background:#0a3d62; color:white; border:none; font-size:1rem; border-radius:5px; cursor:pointer;}
-table{width:95%; margin:15px auto; border-collapse:collapse;}
-th,td{border:1px solid #0a3d62; padding:10px; text-align:center;}
-button.edit {background:#1e3799; border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;}
-button.delete {background:#eb2f06; border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;}
-.accordion-btn {width:95%; margin:15px auto; background:#0a3d62; color:white; padding:10px; font-size:1rem; border:none; border-radius:5px; cursor:pointer; text-align:left;}
-.accordion-content {display:none; width:95%; margin:0 auto 20px; border:1px solid #0a3d62; border-radius:5px; padding:10px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SODAMA - Ciment</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin:0;
+            background:#ffffff;
+            color:#0a3d62;
+        }
+
+        .navbar {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            background:#0a3d62;
+            padding:10px 20px;
+            color:white;
+        }
+        .navbar .logo {
+            font-size:1.5rem;
+            font-weight:bold;
+        }
+        .navbar ul {
+            display:flex;
+            list-style:none;
+        }
+        .navbar ul li a {
+            text-decoration:none;
+            color:white;
+            padding:8px 15px;
+            border-radius:5px;
+            font-weight:bold;
+        }
+        .navbar ul li a:hover {
+            background:white;
+            color:#0a3d62;
+        }
+
+        .menu-toggle {
+            display:none;
+            flex-direction:column;
+            cursor:pointer;
+        }
+        .menu-toggle span {
+            background:white;
+            width:25px;
+            height:3px;
+            margin:4px 0;
+        }
+
+        @media(max-width:768px){
+            .menu-toggle{display:flex;}
+            .navbar ul{
+                position:absolute;
+                top:60px;
+                right:0;
+                background:#0a3d62;
+                width:200px;
+                flex-direction:column;
+                padding:10px;
+                display:none;
+            }
+            .navbar ul.active{display:flex;}
+        }
+
+        h1{text-align:center; margin:20px 0;}
+
+        form{
+            max-width:800px;
+            margin:auto;
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+        }
+        form input{
+            width:48%;
+            padding:10px;
+            border:1px solid #0a3d62;
+            border-radius:5px;
+        }
+        form button{
+            width:100%;
+            padding:10px;
+            background:#0a3d62;
+            color:white;
+            border:none;
+            font-size:1rem;
+            border-radius:5px;
+            cursor:pointer;
+        }
+
+        table{
+            width:95%;
+            margin:15px auto;
+            border-collapse:collapse;
+        }
+        th,td{
+            border:1px solid #0a3d62;
+            padding:10px;
+            text-align:center;
+        }
+
+        button.edit {
+            background:#1e3799;
+            border:none;
+            color:white;
+            padding:5px 10px;
+            border-radius:5px;
+            cursor:pointer;
+        }
+        button.delete {
+            background:#eb2f06;
+            border:none;
+            color:white;
+            padding:5px 10px;
+            border-radius:5px;
+            cursor:pointer;
+        }
+
+        .accordion-btn {
+            width:95%;
+            margin:15px auto;
+            background:#0a3d62;
+            color:white;
+            padding:10px;
+            font-size:1rem;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+            text-align:left;
+        }
+        .accordion-content {
+            display:none;
+            width:95%;
+            margin:0 auto 20px;
+            border:1px solid #0a3d62;
+            border-radius:5px;
+            padding:10px;
+        }
+    </style>
 </head>
+
 <body>
 
 <nav class="navbar">
-<div class="logo">SODAMA</div>
-<div class="menu-toggle" id="mobile-menu"><span></span><span></span><span></span></div>
-<ul id="nav-links">
-<li><a href="index.html">Accueil</a></li>
-<li><a href="ciment.html">Ciment</a></li>
-<li><a href="transport.html">Transport</a></li>
-<li><a href="rapport.html">Rapport</a></li>
-<li><a href="versement.html">Versement</a></li>
-</ul>
+    <div class="logo">SODAMA</div>
+
+    <div class="menu-toggle" id="mobile-menu">
+        <span></span><span></span><span></span>
+    </div>
+
+    <ul id="nav-links">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="ciment.html">Ciment</a></li>
+        <li><a href="transport.html">Transport</a></li>
+        <li><a href="rapport.html">Rapport</a></li>
+        <li><a href="versement.html">Versement</a></li>
+    </ul>
 </nav>
 
 <h1>Gestion du Ciment</h1>
 
 <form id="cimentForm">
-<input type="date" id="date" required>
-<input type="number" id="tonnage" placeholder="Tonnage" required>
-<input type="number" id="prixAchat" placeholder="Prix achat unitaire" required>
-<input type="number" id="prixVente" placeholder="Prix vente unitaire" required>
-<input type="number" id="depense" placeholder="Dépenses" required>
-<button type="submit">Enregistrer</button>
+    <input type="date" id="date" required>
+    <input type="number" id="tonnage" placeholder="Tonnage" required>
+    <input type="number" id="prixAchat" placeholder="Prix achat unitaire" required>
+    <input type="number" id="prixVente" placeholder="Prix vente unitaire" required>
+    <input type="number" id="depense" placeholder="Dépenses" required>
+    <button type="submit">Enregistrer</button>
 </form>
 
 <div id="cimentContainer"></div>
 
 <script>
+
 document.getElementById("mobile-menu").onclick = () => {
     document.getElementById("nav-links").classList.toggle("active");
 };
 
-const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbzhJNpg-lQt0pPz2RdKPU86_LWuvo1ubDJJyWWhQ_CJUcennw5SEhlIWntC3GBi_655hQ/exec";
-
+const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbz6cngbQ44xOjvLyTd8-fBxCNgra12xgeF1Je6w-d0H6nKb-4DUhPIdyi4u11sfEEHCwg/exec"; 
 let cimentData = [];
 let editRowIndex = null;
 
-function formatFCFA(val){ return Number(val).toLocaleString('fr-FR') + " FCFA"; }
-function getMonthKey(dateStr){ const d = new Date(dateStr); return `${d.getMonth()+1}-${d.getFullYear()}`; }
+function formatFCFA(val){
+    return Number(val).toLocaleString('fr-FR') + " FCFA";
+}
 
-// Charger données
+function getMonthKey(dateStr){
+    const d = new Date(dateStr);
+    return `${d.getMonth()+1}-${d.getFullYear()}`;
+}
+
 async function loadCimentData(){
     try{
-        console.log("📥 Chargement Ciment...");
         const res = await fetch(`${GLOBAL_URL}?type=ciment`);
         const rows = await res.json();
-        console.log("✅ Données reçues:", rows.length, "lignes");
-        
+
         cimentData = rows.map(r=>({
             sheetRow: r.row,
             date: r.values[0],
@@ -81,19 +207,24 @@ async function loadCimentData(){
             prixAchat: parseFloat(r.values[2]) || 0,
             prixVente: parseFloat(r.values[3]) || 0,
             depense: parseFloat(r.values[4]) || 0,
-            benefice: parseFloat(r.values[5]) || ((parseFloat(r.values[3]||0)*parseFloat(r.values[1]||0)) - (parseFloat(r.values[2]||0)*parseFloat(r.values[1]||0)) - parseFloat(r.values[4]||0))
+            benefice: parseFloat(r.values[5]) || (
+                (parseFloat(r.values[3]||0)*parseFloat(r.values[1]||0)) -
+                (parseFloat(r.values[2]||0)*parseFloat(r.values[1]||0)) -
+                parseFloat(r.values[4]||0)
+            )
         }));
+
         renderTable();
-    } catch(e){ 
-        console.error("❌ Erreur fetch Ciment:", e); 
-        document.getElementById("cimentContainer").innerHTML = "<p style='text-align:center;color:red;'>Erreur chargement données</p>";
+    }
+    catch(e){
+        console.error("Erreur fetch Ciment:", e);
     }
 }
 
-// Rendu tableau
 function renderTable(){
     const container = document.getElementById("cimentContainer");
     container.innerHTML = "";
+
     cimentData.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
     const grouped = {};
@@ -104,112 +235,104 @@ function renderTable(){
     });
 
     for(const month in grouped){
+
         const btn = document.createElement("button");
         btn.className="accordion-btn";
         btn.textContent=`Mois: ${month}`;
+
         const content = document.createElement("div");
         content.className="accordion-content";
 
-        let tableHTML=`<table><thead>
-        <tr><th>Date</th><th>Tonnage</th><th>Achat</th><th>Vente</th><th>Dépenses</th><th>Bénéfice</th><th>Actions</th></tr>
+        let tableHTML = `<table><thead>
+            <tr><th>Date</th><th>Tonnage</th><th>Achat</th><th>Vente</th><th>Dépenses</th><th>Bénéfice</th><th>Actions</th></tr>
         </thead><tbody>`;
 
         grouped[month].forEach(item=>{
             const formattedDate = item.date.split('T')[0];
-            tableHTML+=`<tr>
-            <td>${formattedDate}</td>
-            <td>${item.tonnage}</td>
-            <td>${formatFCFA(item.prixAchat*item.tonnage)}</td>
-            <td>${formatFCFA(item.prixVente*item.tonnage)}</td>
-            <td>${formatFCFA(item.depense)}</td>
-            <td>${formatFCFA(item.benefice)}</td>
-            <td>
-            <button class="edit" onclick="prepareEdit(${item.sheetRow})">Modifier</button>
-            <button class="delete" onclick="deleteRow(${item.sheetRow})">Supprimer</button>
-            </td></tr>`;
+            tableHTML += `<tr>
+                <td>${formattedDate}</td>
+                <td>${item.tonnage}</td>
+                <td>${formatFCFA(item.prixAchat*item.tonnage)}</td>
+                <td>${formatFCFA(item.prixVente*item.tonnage)}</td>
+                <td>${formatFCFA(item.depense)}</td>
+                <td>${formatFCFA(item.benefice)}</td>
+                <td>
+                    <button class="edit" onclick="prepareEdit(${item.sheetRow})">Modifier</button>
+                    <button class="delete" onclick="deleteRow(${item.sheetRow})">Supprimer</button>
+                </td>
+            </tr>`;
         });
-        tableHTML+="</tbody></table>";
+
+        tableHTML += "</tbody></table>";
         content.innerHTML = tableHTML;
-        btn.onclick = ()=>{ content.style.display=content.style.display==="block"?"none":"block"; };
-        container.appendChild(btn); 
+
+        btn.onclick = ()=>{
+            content.style.display = content.style.display==="block" ? "none" : "block";
+        };
+
+        container.appendChild(btn);
         container.appendChild(content);
     }
 }
 
-// ✅ FONCTION MODIFIER - GLOBALE (window.prepareEdit)
-window.prepareEdit = function(sheetRow){
+function prepareEdit(sheetRow){
     const item = cimentData.find(x=>x.sheetRow===sheetRow);
-    if(item){
-        document.getElementById("date").value = item.date.split('T')[0];
-        document.getElementById("tonnage").value = item.tonnage;
-        document.getElementById("prixAchat").value = item.prixAchat;
-        document.getElementById("prixVente").value = item.prixVente;
-        document.getElementById("depense").value = item.depense;
-        editRowIndex = sheetRow;
-        console.log("✏️ Édition ligne:", sheetRow);
-    }
-};
 
-// ✅ FONCTION SUPPRIMER - GLOBALE (window.deleteRow)
-window.deleteRow = async function(sheetRow){
-    if(!confirm("Supprimer cette ligne ?")) return;
-    
-    try{
-        console.log("🗑️ Suppression ligne:", sheetRow);
-        const res = await fetch(`${GLOBAL_URL}?type=ciment&action=delete&index=${sheetRow}`);
-        const responseText = await res.text();
-        console.log("✅ Réponse Apps Script:", responseText);
-        
-        if(responseText === "OK"){
-            console.log("✅ Ligne supprimée !");
-            loadCimentData(); // Recharge tableau
-        } else {
-            alert("Erreur serveur: " + responseText);
-        }
-    } catch(e){
-        console.error("❌ Erreur suppression:", e);
-        alert("Erreur réseau: " + e.message);
-    }
-};
+    document.getElementById("date").value = item.date.split('T')[0];
+    document.getElementById("tonnage").value = item.tonnage;
+    document.getElementById("prixAchat").value = item.prixAchat;
+    document.getElementById("prixVente").value = item.prixVente;
+    document.getElementById("depense").value = item.depense;
 
-// Ajouter / modifier
+    editRowIndex = sheetRow;
+}
+
 document.getElementById("cimentForm").addEventListener("submit", async function(e){
     e.preventDefault();
+
     const date = document.getElementById("date").value;
     const tonnage = parseFloat(document.getElementById("tonnage").value);
     const prixAchat = parseFloat(document.getElementById("prixAchat").value);
     const prixVente = parseFloat(document.getElementById("prixVente").value);
     const depense = parseFloat(document.getElementById("depense").value);
+
     const benefice = (tonnage*prixVente)-(tonnage*prixAchat)-depense;
     const data=[date, tonnage, prixAchat, prixVente, depense, benefice];
 
     try{
-        console.log("💾 Enregistrement:", editRowIndex ? "MODIF" : "NOUVELLE");
         if(editRowIndex){
-            await fetch(`${GLOBAL_URL}?type=ciment&edit=${editRowIndex}`,{ 
-                method:"POST", 
-                body:JSON.stringify(data),
-                headers: {'Content-Type': 'application/json'}
+            await fetch(`${GLOBAL_URL}?type=ciment&edit=${editRowIndex}`,{
+                method:"POST",
+                body:JSON.stringify(data)
             });
             editRowIndex=null;
         } else {
-            await fetch(`${GLOBAL_URL}?type=ciment`,{ 
-                method:"POST", 
-                body:JSON.stringify(data),
-                headers: {'Content-Type': 'application/json'}
+            await fetch(`${GLOBAL_URL}?type=ciment`,{
+                method:"POST",
+                body:JSON.stringify(data)
             });
         }
+
         this.reset();
         loadCimentData();
-        console.log("✅ Enregistré !");
-    } catch(e){ 
-        console.error("❌ Erreur POST Ciment:", e); 
-        alert("Erreur enregistrement: " + e.message);
+    }
+    catch(e){
+        console.error("Erreur POST Ciment:", e);
     }
 });
 
-// Initial
+async function deleteRow(sheetRow){
+    try{
+        await fetch(`${GLOBAL_URL}?type=ciment&action=delete&index=${sheetRow}`);
+        loadCimentData();
+    }
+    catch(e){
+        console.error("Erreur DELETE Ciment:", e);
+    }
+}
+
 loadCimentData();
+
 </script>
 
 </body>
